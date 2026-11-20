@@ -27,7 +27,7 @@ export default function App() {
   const [lam, setLam] = useState(1), [rob, setRob] = useState(false), [route, setRoute] = useState(null)
   const [choke, setChoke] = useState([]), [alerts, setAlerts] = useState(null), [ver, setVer] = useState(0), [err, setErr] = useState('')
   const [fr, setFr] = useState([]), [fi, setFi] = useState(0), [play, setPlay] = useState(false)
-  const [shel, setShel] = useState(null), [showOut, setShowOut] = useState(true), [imp, setImp] = useState(''), [impMsg, setImpMsg] = useState('')
+  const [shel, setShel] = useState(null), [showOut, setShowOut] = useState(true), [showOsm, setShowOsm] = useState(false), [imp, setImp] = useState(''), [impMsg, setImpMsg] = useState('')
   const bump = () => setVer(v => v + 1), run = f => f.catch(e => setErr(String(e.message)))
 
   useEffect(() => { run(Promise.all([api('/city'), api('/facilities')]).then(([c, f]) => { setCity(c); setFac(f); setRain(c.rain); setStart({ lat: c.center[0], lng: c.center[1] }) })) }, [])
@@ -59,12 +59,13 @@ export default function App() {
     <div className="app">
       <div className="map">
         <MapContainer center={city.center} zoom={15} style={{ height: '100%' }}>
-          <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution="© OpenStreetMap contributors © CARTO" />
+          <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}" maxNativeZoom={16} maxZoom={19} attribution="Tiles © Esri, HERE, Garmin, © OpenStreetMap contributors" />
+          <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}" maxNativeZoom={16} maxZoom={19} />
           <Clicks on={ll => tool === 'start' && setStart(ll)} />
           {risk && <GeoJSON key={`${ver}-${tool}`} data={risk} onEachFeature={onFeature}
             style={f => f.properties.closed ? { color: '#fff', dashArray: '2 8', weight: 5 } : { color: f.properties.cls < 0 ? '#8a8a98' : CC[f.properties.cls], weight: f.properties.cls >= 3 ? 6 : 4, opacity: .9 }} />}
           {fac.filter(f => f.t === 'hospital' && f.in_area).map(f => <Marker key={'h' + f.id} position={[f.lat, f.lon]} icon={cross}><Tooltip>Hospital: {f.n}</Tooltip></Marker>)}
-          {fac.filter(f => f.t === 'shelter' && (showOut || f.status !== 'outside')).map(f => <Marker key={'s' + f.id + f.status} position={[f.lat, f.lon]} icon={tent(f.status, route?.destination?.id === f.id)} zIndexOffset={f.status === 'outside' ? -500 : 500}>
+          {fac.filter(f => f.t === 'shelter' && (showOut || f.status !== 'outside') && (showOsm || f.src !== 'osm')).map(f => <Marker key={'s' + f.id + f.status} position={[f.lat, f.lon]} icon={tent(f.status, route?.destination?.id === f.id)} zIndexOffset={f.status === 'outside' ? -500 : 500}>
             <Tooltip>{f.n}</Tooltip>
             <Popup><div className="pop"><b>{f.n}</b><br /><span className="chip" style={{ background: SC[f.status], color: f.status === 'safe' || f.status === 'watch' ? '#22222e' : '#fff' }}>{SN[f.status]}</span> {f.why}<br />
               {fmtCap(f.cap)}{f.area ? ` · ${f.area.toLocaleString('en-IN')} m²` : ''}{f.flood_prone ? ' · riverbank' : ''}<br /><small>{f.municipality ? f.municipality + ' · ' : ''}Source: {f.src}</small>
@@ -78,6 +79,7 @@ export default function App() {
           <b>Shelters</b>{['safe', 'watch', 'unsafe', 'outside'].map(k => <div key={k}><span dangerouslySetInnerHTML={{ __html: tent(k).options.html }} />{SN[k]}</div>)}
           <div><span dangerouslySetInnerHTML={{ __html: cross.options.html }} />Hospital</div>
           <label className="lg"><input type="checkbox" checked={showOut} onChange={e => setShowOut(e.target.checked)} /> Show valley-wide sites</label>
+          <label className="lg"><input type="checkbox" checked={showOsm} onChange={e => setShowOsm(e.target.checked)} /> Show other possible sites (OSM schools)</label>
         </div>
       </div>
       <aside className="side">
@@ -100,7 +102,7 @@ export default function App() {
           <h2>Likely to flood within 30 min</h2><p><b>{alerts?.likely_soon ?? 0}</b> roads</p><div className="bub">{alerts?.message}</div></>}
 
         {mode === 'RESPOND' && <><h2>Map tool</h2><div className="row">{[['inspect', 'Inspect road'], ['start', 'Set start'], ['block', 'Close / reopen road']].map(([k, n]) => <button key={k} className={'b' + (tool === k ? ' on' : '')} onClick={() => setTool(k)}>{n}</button>)}<button className="b" onClick={() => post('/reset').then(bump)}>Reopen all</button></div>
-          <label>Destination<select value={dest} onChange={e => setDest(e.target.value)}><option value="hospital">Nearest hospital</option><option value="shelter">Nearest safe shelter</option>{fac.filter(f => f.in_area).map(f => <option key={f.id} value={f.id}>{f.t === 'hospital' ? '🏥 ' : '⛺ '}{f.n}</option>)}</select></label>
+          <label>Destination<select value={dest} onChange={e => setDest(e.target.value)}><option value="hospital">Nearest hospital</option><option value="shelter">Nearest safe shelter</option>{fac.filter(f => f.in_area && (showOsm || f.src !== 'osm')).map(f => <option key={f.id} value={f.id}>{f.t === 'hospital' ? '🏥 ' : '⛺ '}{f.n}</option>)}</select></label>
           <div className="row">{[['ambulance', 'Ambulance'], ['car', 'Car'], ['bike', 'Two-wheeler'], ['walk', 'Walking']].map(([k, n]) => <button key={k} className={'b' + (veh === k ? ' on' : '')} onClick={() => setVeh(k)}>{n}</button>)}</div>
           <label>Risk avoidance (0 = fastest): {lam}<input type="range" min="0" max="3" step=".5" value={lam} onChange={e => setLam(+e.target.value)} /></label>
           <label><input type="checkbox" checked={rob} onChange={e => setRob(e.target.checked)} /> Robust routing (rain −20% / +30%)</label>

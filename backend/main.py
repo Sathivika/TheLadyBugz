@@ -344,6 +344,8 @@ def route(lat: float, lon: float, to: str = "hospital", vehicle: str = "ambulanc
         if keep: D.update(d=d, p=p)
         pen = lambda f: 5 if to == "shelter" and status(f)["st"] == "watch" else 0  # "check first" shelters count as 5 min further
         ok = [(d[f["k"]] + pen(f), f) for f in T if f["k"] in d]
+        des = [x for x in ok if x[1]["src"] != "osm"] if to == "shelter" else []
+        ok = des or ok
         if not ok: return None
         f = min(ok, key=lambda x: x[0])[1]; return p[f["k"]], f
     m = run(lam * v["lam"], keep=True)
