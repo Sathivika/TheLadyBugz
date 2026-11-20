@@ -5,7 +5,7 @@ import Home from "./Components/Home";
 import Dashboard from "./Components/Dashboard";
 import Features from "./Components/Features";
 import About from "./Components/About";
-import Respond from "./Components/About";
+import Respond from "./Components/Respond";
 import Alert from "./Components/Alert";
 
 

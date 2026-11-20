@@ -1,732 +1,705 @@
-// Features.js — SETU (Flood Risk & Emergency Safe-Route Mapper)
-// Pilot: Kathmandu, Nepal · Team TheLadyBugz_5 · Katathon 6.0 · PS 103
-// Page order: Hero (text left, Plan/Alert/Respond right in 3 rows) → Feature pie chart → Engine → Data → CTA → Footer.
-// No extra packages needed. No emojis anywhere: pie slices carry the category name.
-//
-// Logo: save your image as  public/Setu.jpg  (capital S — file names are case-sensitive). Also tries other common names.
-// Languages: English / हिन्दी / नेपाली.
-import React, { createContext, useContext, useEffect, useRef, useState } from "react";
-import "./Features.css";
+// Respond.js — SETU · RESPOND (after the flood) · English / हिन्दी / नेपाली
+// Runs fully in the browser on FloodEngine.js (same demo network as the Dashboard).
+// Ambulance first (rescue points -> nearest hospital), then supplies (base -> relief camps).
+// All roads, hospitals, shelters, capacities and incident points are DEMO data, not measurements.
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import "./Home.css";
+import "./Respond.css";
+import setuLogo from "./Setu.jpg";
+import {
+  CENTER, CLASSES, NODATA, PRESETS, RIVER_LINE,
+  buildNetwork, buildFacilities, nearestNode, route, confidence,
+  edgeRisk, riskClass, edgeClassInfo, explainEdge, demoReplay, rainfallLoading,
+} from "./FloodEngine";
 
-/* ------------------------------------------------------------------ */
-/* Logo                                                                */
-/* ------------------------------------------------------------------ */
-const PUBLIC = typeof process !== "undefined" && process.env && process.env.PUBLIC_URL ? process.env.PUBLIC_URL : "";
-// The first file that exists in /public is used. Add your own file name to the front of this list if needed.
-const LOGO_LIST = [
-  `${PUBLIC}/Setu.jpg`,
-  `${PUBLIC}/Setu.jpeg`,
-  `${PUBLIC}/setu.jpeg`,
-  `${PUBLIC}/setu.jpg`,
-  `${PUBLIC}/setu.JPG`,
-  `${PUBLIC}/setu.png`,
-  `${PUBLIC}/setu-logo.png`,
+// ---------- demo data (built once, same network as the Dashboard) ----------
+const net = buildNetwork();
+const facilities = buildFacilities(net);
+const hospitals = facilities.filter((f) => f.type === "hospital");
+const shelters = facilities.filter((f) => f.type === "shelter");
+const hospitalNodes = hospitals.map((f) => f.node);
+const replay = demoReplay();
+const gridNode = (r, c) => net.nodes[r * 16 + c].id;
+
+const START_INCIDENTS = [{ id: 1, node: gridNode(3, 5) }, { id: 2, node: gridNode(7, 10) }];
+const START_BASE = gridNode(5, 7);
+
+// Emergency numbers. Police, fire, ambulance: Nepal telecom and foreign-ministry travel pages.
+// Disaster hotline 1234 replaced 1149 (Home Ministry notice, July 2026, per press). Confirm before public use.
+const CONTACTS = [
+  { key: "police", number: "100", label: { en: "Police", hi: "पुलिस", ne: "प्रहरी" } },
+  { key: "fire", number: "101", label: { en: "Fire", hi: "दमकल", ne: "दमकल" } },
+  { key: "ambulance", number: "102", label: { en: "Ambulance", hi: "एम्बुलेंस", ne: "एम्बुलेन्स" } },
+  { key: "disaster", number: "1234", label: { en: "Disaster hotline", hi: "आपदा हॉटलाइन", ne: "विपद् हटलाइन" } },
 ];
-const LogoCtx = createContext(LOGO_LIST);
 
-/* ------------------------------------------------------------------ */
-/* Translations                                                        */
-/* ------------------------------------------------------------------ */
-const I18N = {
-  en: {
-    code: "en",
-    nav: { home: "Home", features: "Features", ways: "Three Ways", about: "About", dashboard: "Open Dashboard", menu: "☰ Menu" },
-    brand: { name: "Setu", tag: "FLOOD SAFE ROUTES" },
-    hero: {
-      eyebrow: "FEATURES · KATHMANDU PILOT",
-      h1a: "From India to Nepal.",
-      h1b: "Every feature, mapped.",
-      sub: "SETU turns rainfall and terrain into a flood-risk map, then finds the safest way through — for commuters, ambulances and people heading to a shelter.",
-      plan: ["PLAN", "Before the monsoon — risk map and chokepoint report."],
-      alert: ["ALERT", "During rain — roads likely to flood within 30 min."],
-      respond: ["RESPOND", "Roads blocked — instant reroute with confidence."],
-      redAlert: "RED ALERT",
-      alertMsg: "Demo alert: roads likely to flood within 30 minutes — reroute now.",
-      cta1: "Plan a Safe Route →",
-      cta2: "See all features",
-      stats: ["features done", "cities", "districts"],
-    },
-    status: { done: "Done", starter: "Starter", partial: "Partial", todo: "To do", roadmap: "Roadmap" },
-    feat: {
-      eyebrow: "WHAT IT DOES", h2: "All features, and where they stand.",
-      pieTitle: "Features by category",
-      pieHint: "Each slice is one group of features. Click a slice to see the features inside it.",
-      count: (n) => `${n} features`, doneOf: (d, n) => `${d} of ${n} done`, share: "of all features",
-      cats: {
-        risk: ["Risk mapping", "Scores every road and shows where water is likely to build up."],
-        routing: ["Safe routing", "Finds the safest way through and explains how sure it is."],
-        rain: ["Rain & live data", "Real roads and rainfall — live, replayed or set by hand."],
-        emergency: ["Emergency response", "Alerts, ambulances, shelters and reports for the municipality."],
-        rollout: ["Testing & rollout", "Proving the scores on real hotspots, then going live."],
-      },
-    },
-    features: {
-      roadscore: ["Road-level risk scoring", "Every OpenStreetMap road segment gets a 0–1 flood-risk score."],
-      riskmap: ["Interactive risk map", "Roads coloured by class. Click any road to see why it scored that way."],
-      classes: ["Five risk classes", "Very low to very high. Grey means no data — counted as moderate, never safe."],
-      closeopen: ["Close & reopen roads", "Click a road to close it, click again to reopen it."],
-      reroute: ["Automatic reroute", "Routes recalculate the moment a road is closed or rain changes."],
-      planner: ["Risk-aware route planner", "Pick start and destination. Cost = travel time + λ × risk."],
-      metrics: ["Route metrics", "Distance, time and average risk for every suggested route."],
-      confidence: ["Confidence & reasons", "Green, amber or red confidence with a plain-language “why”."],
-      modes: ["Plan · Alert · Respond", "Three modes for before, during and after the rain."],
-      slider: ["Rainfall slider", "Dry, moderate, heavy and extreme presets for any scenario."],
-      chokepoint: ["Chokepoint report", "Ranked risky roads for the municipality, with CSV download."],
-      livefeed: ["Live rainfall feed", "Open-Meteo rainfall, refreshed on demand."],
-      roadnet: ["Real road network", "Kathmandu roads loaded with OSMnx."],
-      replay: ["Storm replay", "Replay of the Kathmandu flood, Sep 2024 (ERA5 reanalysis, not live)."],
-      shelter: ["Shelter database", "shelters.csv plus OSM, routing to the nearest shelter. Nepal data being collected."],
-      ambulance: ["Ambulance mode", "Hospital and shelter routing with signal-priority junctions."],
-      terrain: ["Elevation & drainage model", "Elevation, basin depth and creek distance done. Flow accumulation and HAND next."],
-      backtest: ["Back-test on real hotspots", "Check scores against 10–15 sourced Kathmandu flood points."],
-      deploy: ["Real deployment", "Pilot with a ward office: login, audit log, hosted database, SMS. Not deployed yet."],
-    },
-    engine: {
-      eyebrow: "UNDER THE HOOD", h2: "Transparent maths, not a black box.",
-      cards: [
-        { tag: "RISK ENGINE", title: "Susceptibility × rain", desc: "S mixes low elevation, basin depth, creek distance and built-up density. The scaling is a prototype assumption to validate." },
-        { tag: "ROUTING", title: "Dijkstra with closures", desc: "NetworkX Dijkstra on the real road graph. Vehicle limits use risk classes (placeholders), never invented flood depths." },
-        { tag: "ALERT RULE", title: "Likely to flood soon", desc: "Gives drivers and ambulance teams a 30-minute early-warning window." },
-        { tag: "CONFIDENCE", title: "Green · Amber · Red", desc: "Every route says how sure it is and why — decision support, not a safety guarantee." },
-      ],
-      live: ["Live", "Open-Meteo feed. A dry day correctly shows 0 high-risk roads."],
-      replay: ["Replay", "Real Kathmandu storm, Sep 2024 — reanalysis data, clearly labelled."],
-      manual: ["Manual", "Slider for dry, moderate, heavy and extreme what-ifs."],
-    },
-    data: {
-      eyebrow: "OPEN DATA ONLY", h2: "Free, reproducible sources.",
-      head: ["Need", "Source", "Note"],
-      rows: [
-        ["Roads, hospitals, schools, shelters", "Check ward coverage first"],
-        ["Terrain", "Coarse — we say so"],
-        ["Rainfall, live & past", "ERA5 smooths extremes"],
-        ["Shelters", "Source and date recorded"],
-        ["Flood hotspots", "For the back-test"],
-      ],
-      limitsTitle: "Honest limits",
-      limits: "Decision support, not a safety guarantee. Factor weights come from a Mumbai study and are reference values until validated for Nepal. Terrain is about 90 m resolution. We make no accuracy claims until the back-test against real Kathmandu hotspots is done.",
-    },
-    cta: {
-      h2: "See your route before the water does.",
-      p: "Open the dashboard, set the rain and close a road — SETU reroutes instantly.",
-      b1: "Open Dashboard →", b2: "Back to Home",
-    },
-    footer: {
-      blurb: "Flood risk & emergency safe-route mapper. Pilot: Kathmandu, Nepal.",
-      chip: "Prototype · not deployed yet",
-      explore: "Explore", all: "All features", how: "How it works", dataSrc: "Data sources",
-      app: "App", home: "Home", dash: "Dashboard", planner: "Route planner", open: "Open data",
-      copy: "© 2026 SETU · Team TheLadyBugz_5 · Katathon 6.0 · PS 103",
-      disclaimer: "Decision support, not a safety guarantee.", top: "↑ Back to top",
-    },
-  },
+const LANGUAGES = [
+  { code: "en", label: "English" },
+  { code: "hi", label: "हिन्दी" },
+  { code: "ne", label: "नेपाली" },
+];
 
-  hi: {
-    code: "hi",
-    nav: { home: "होम", features: "सुविधाएँ", ways: "तीन तरीके", about: "हमारे बारे में", dashboard: "डैशबोर्ड खोलें", menu: "☰ मेनू" },
-    brand: { name: "Setu", tag: "बाढ़ सुरक्षित रास्ते" },
-    hero: {
-      eyebrow: "सुविधाएँ · काठमांडू पायलट",
-      h1a: "भारत से नेपाल तक।",
-      h1b: "हर सुविधा, नक्शे पर।",
-      sub: "SETU वर्षा और भू-भाग को बाढ़-जोखिम के नक्शे में बदलता है और फिर सबसे सुरक्षित रास्ता खोजता है — रोज़ आने-जाने वालों, एम्बुलेंस और आश्रय की ओर जाते लोगों के लिए।",
-      plan: ["योजना", "मानसून से पहले — जोखिम नक्शा और अवरोध-बिंदु रिपोर्ट।"],
-      alert: ["चेतावनी", "बारिश के दौरान — 30 मिनट में डूबने की आशंका वाली सड़कें।"],
-      respond: ["कार्रवाई", "सड़कें बंद — भरोसे के साथ तुरंत नया रास्ता।"],
-      redAlert: "रेड अलर्ट",
-      alertMsg: "डेमो चेतावनी: 30 मिनट में सड़कें डूबने की आशंका — अभी नया रास्ता लें।",
-      cta1: "सुरक्षित रास्ता चुनें →",
-      cta2: "सभी सुविधाएँ देखें",
-      stats: ["सुविधाएँ पूर्ण", "शहर", "ज़िले"],
-    },
-    status: { done: "पूर्ण", starter: "शुरुआती", partial: "आंशिक", todo: "करना बाकी", roadmap: "रोडमैप" },
-    feat: {
-      eyebrow: "यह क्या करता है", h2: "सभी सुविधाएँ, और वे कहाँ तक पहुँचीं।",
-      pieTitle: "श्रेणी के अनुसार सुविधाएँ",
-      pieHint: "हर टुकड़ा सुविधाओं का एक समूह है। उसके अंदर की सुविधाएँ देखने के लिए किसी टुकड़े पर क्लिक करें।",
-      count: (n) => `${n} सुविधाएँ`, doneOf: (d, n) => `${n} में से ${d} पूर्ण`, share: "सभी सुविधाओं का",
-      cats: {
-        risk: ["जोखिम मानचित्रण", "हर सड़क को अंक देता है और दिखाता है कि पानी कहाँ जमा हो सकता है।"],
-        routing: ["सुरक्षित रास्ता", "सबसे सुरक्षित रास्ता ढूँढता है और बताता है कि वह कितना भरोसेमंद है।"],
-        rain: ["बारिश और लाइव डेटा", "असली सड़कें और बारिश — लाइव, दोहराई गई या हाथ से तय की गई।"],
-        emergency: ["आपातकालीन प्रतिक्रिया", "नगर पालिका के लिए अलर्ट, एम्बुलेंस, आश्रय और रिपोर्ट।"],
-        rollout: ["परीक्षण और लागू करना", "असली हॉटस्पॉट पर अंकों की जाँच, फिर लाइव शुरुआत।"],
-      },
-    },
-    features: {
-      roadscore: ["सड़क-स्तर पर जोखिम स्कोर", "हर OpenStreetMap सड़क खंड को 0–1 का बाढ़-जोखिम स्कोर मिलता है।"],
-      riskmap: ["इंटरैक्टिव जोखिम नक्शा", "सड़कें वर्ग के अनुसार रंगीन। किसी भी सड़क पर क्लिक करके देखें कि उसे यह स्कोर क्यों मिला।"],
-      classes: ["पाँच जोखिम वर्ग", "बहुत कम से बहुत उच्च तक। धूसर का मतलब डेटा नहीं — इसे मध्यम माना जाता है, कभी सुरक्षित नहीं।"],
-      closeopen: ["सड़क बंद करें और खोलें", "सड़क बंद करने के लिए क्लिक करें, दोबारा क्लिक करने पर खुल जाती है।"],
-      reroute: ["स्वचालित नया रास्ता", "सड़क बंद होते ही या बारिश बदलते ही रास्ते दोबारा निकलते हैं।"],
-      planner: ["जोखिम-जागरूक रूट प्लानर", "शुरुआत और गंतव्य चुनें। लागत = यात्रा समय + λ × जोखिम।"],
-      metrics: ["रूट मेट्रिक्स", "हर सुझाए गए रास्ते की दूरी, समय और औसत जोखिम।"],
-      confidence: ["भरोसा और कारण", "हरा, पीला या लाल भरोसा और सरल भाषा में “क्यों”।"],
-      modes: ["योजना · चेतावनी · कार्रवाई", "बारिश से पहले, दौरान और बाद के लिए तीन मोड।"],
-      slider: ["वर्षा स्लाइडर", "किसी भी परिदृश्य के लिए सूखा, मध्यम, भारी और अत्यधिक प्रीसेट।"],
-      chokepoint: ["अवरोध-बिंदु रिपोर्ट", "नगरपालिका के लिए जोखिम-क्रम में सड़कें, CSV डाउनलोड के साथ।"],
-      livefeed: ["लाइव वर्षा फ़ीड", "Open-Meteo की वर्षा, माँग पर ताज़ा।"],
-      roadnet: ["असली सड़क नेटवर्क", "OSMnx से लोड की गई काठमांडू की सड़कें।"],
-      replay: ["तूफ़ान रिप्ले", "काठमांडू बाढ़ का रिप्ले, सितंबर 2024 (ERA5 पुनर्विश्लेषण, लाइव नहीं)।"],
-      shelter: ["आश्रय डेटाबेस", "shelters.csv और OSM, निकटतम आश्रय तक रूटिंग। नेपाल का डेटा जुटाया जा रहा है।"],
-      ambulance: ["एम्बुलेंस मोड", "सिग्नल-प्राथमिकता वाले चौराहों के साथ अस्पताल और आश्रय तक रूटिंग।"],
-      terrain: ["ऊँचाई और जल-निकासी मॉडल", "ऊँचाई, बेसिन गहराई और नाले से दूरी पूरी। फ़्लो एक्युमुलेशन और HAND आगे।"],
-      backtest: ["असली हॉटस्पॉट पर बैक-टेस्ट", "स्कोर को काठमांडू के 10–15 स्रोत-युक्त बाढ़ बिंदुओं से जाँचना।"],
-      deploy: ["असली तैनाती", "वार्ड कार्यालय के साथ पायलट: लॉगिन, ऑडिट लॉग, होस्टेड डेटाबेस, SMS। अभी तैनात नहीं।"],
-    },
-    engine: {
-      eyebrow: "अंदर की बात", h2: "पारदर्शी गणित, ब्लैक बॉक्स नहीं।",
-      cards: [
-        { tag: "जोखिम इंजन", title: "संवेदनशीलता × वर्षा", desc: "S में कम ऊँचाई, बेसिन की गहराई, नाले से दूरी और निर्मित घनत्व मिलते हैं। यह स्केलिंग प्रोटोटाइप की एक मान्यता है जिसे जाँचना बाकी है।" },
-        { tag: "रूटिंग", title: "बंद सड़कों के साथ डिज्क्स्ट्रा", desc: "असली सड़क ग्राफ़ पर NetworkX डिज्क्स्ट्रा। वाहन सीमाएँ जोखिम वर्गों (प्लेसहोल्डर) पर आधारित हैं, गढ़ी हुई बाढ़ गहराई पर नहीं।" },
-        { tag: "चेतावनी नियम", title: "जल्द डूबने की आशंका", desc: "चालकों और एम्बुलेंस टीमों को 30 मिनट की पूर्व-चेतावनी देता है।" },
-        { tag: "भरोसा", title: "हरा · पीला · लाल", desc: "हर रास्ता बताता है कि वह कितना भरोसेमंद है और क्यों — निर्णय में सहायता, सुरक्षा की गारंटी नहीं।" },
-      ],
-      live: ["लाइव", "Open-Meteo फ़ीड। सूखे दिन में 0 उच्च-जोखिम सड़कें सही दिखती हैं।"],
-      replay: ["रिप्ले", "काठमांडू का असली तूफ़ान, सितंबर 2024 — पुनर्विश्लेषण डेटा, स्पष्ट रूप से चिह्नित।"],
-      manual: ["मैनुअल", "सूखा, मध्यम, भारी और अत्यधिक परिदृश्यों के लिए स्लाइडर।"],
-    },
-    data: {
-      eyebrow: "केवल खुला डेटा", h2: "मुफ़्त, दोहराए जा सकने वाले स्रोत।",
-      head: ["ज़रूरत", "स्रोत", "टिप्पणी"],
-      rows: [
-        ["सड़कें, अस्पताल, स्कूल, आश्रय", "पहले वार्ड कवरेज जाँचें"],
-        ["भू-भाग", "मोटा रेज़ोल्यूशन — हम यह साफ़ कहते हैं"],
-        ["वर्षा, लाइव और पिछली", "ERA5 चरम मानों को हल्का कर देता है"],
-        ["आश्रय", "स्रोत और तारीख़ दर्ज"],
-        ["बाढ़ हॉटस्पॉट", "बैक-टेस्ट के लिए"],
-      ],
-      limitsTitle: "ईमानदार सीमाएँ",
-      limits: "निर्णय में सहायता, सुरक्षा की गारंटी नहीं। कारकों के भार एक मुंबई अध्ययन से लिए गए हैं और नेपाल के लिए जाँचे जाने तक केवल संदर्भ मान हैं। भू-भाग लगभग 90 मी. रेज़ोल्यूशन का है। काठमांडू के असली हॉटस्पॉट पर बैक-टेस्ट पूरा होने तक हम सटीकता का कोई दावा नहीं करते।",
-    },
-    cta: {
-      h2: "पानी से पहले अपना रास्ता देखिए।",
-      p: "डैशबोर्ड खोलें, बारिश तय करें और कोई सड़क बंद करें — SETU तुरंत नया रास्ता निकाल देता है।",
-      b1: "डैशबोर्ड खोलें →", b2: "होम पर लौटें",
-    },
-    footer: {
-      blurb: "बाढ़ जोखिम और आपातकालीन सुरक्षित-मार्ग मैपर। पायलट: काठमांडू, नेपाल।",
-      chip: "प्रोटोटाइप · अभी तैनात नहीं",
-      explore: "देखें", all: "सभी सुविधाएँ", how: "यह कैसे काम करता है", dataSrc: "डेटा स्रोत",
-      app: "ऐप", home: "होम", dash: "डैशबोर्ड", planner: "रूट प्लानर", open: "खुला डेटा",
-      copy: "© 2026 SETU · टीम TheLadyBugz_5 · Katathon 6.0 · PS 103",
-      disclaimer: "निर्णय में सहायता, सुरक्षा की गारंटी नहीं।", top: "↑ ऊपर जाएँ",
-    },
+const T = {
+  navHome: { en: "Home", hi: "होम", ne: "होम" },
+  navFeatures: { en: "Features", hi: "सुविधाएँ", ne: "सुविधाहरू" },
+  navDashboard: { en: "Dashboard", hi: "डैशबोर्ड", ne: "ड्यासबोर्ड" },
+  navAbout: { en: "About", hi: "परिचय", ne: "बारेमा" },
+  navSub: { en: "RESPOND", hi: "प्रतिक्रिया", ne: "प्रतिक्रिया" },
+  openDash: { en: "Open Dashboard", hi: "डैशबोर्ड खोलें", ne: "ड्यासबोर्ड खोल्नुहोस्" },
+  eyebrow: { en: "RESPOND · AFTER THE FLOOD", hi: "प्रतिक्रिया · बाढ़ के बाद", ne: "प्रतिक्रिया · बाढीपछि" },
+  h1a: { en: "Ambulances first.", hi: "पहले एम्बुलेंस।", ne: "पहिले एम्बुलेन्स।" },
+  h1b: { en: "Then food and medicine.", hi: "फिर भोजन और दवाइयाँ।", ne: "त्यसपछि खाना र औषधि।" },
+  sub: {
+    en: "Set the rain, close flooded roads and drop rescue points on the map. SETU recalculates the safest ambulance routes to hospitals and the supply routes to relief camps instantly.",
+    hi: "बारिश तय करें, डूबी सड़कें बंद करें और नक्शे पर बचाव बिंदु रखें। SETU अस्पतालों तक सबसे सुरक्षित एम्बुलेंस मार्ग और राहत शिविरों तक आपूर्ति मार्ग तुरंत दोबारा निकालता है।",
+    ne: "वर्षा तय गर्नुहोस्, डुबानमा परेका सडक बन्द गर्नुहोस् र नक्सामा उद्धार बिन्दु राख्नुहोस्। SETU ले अस्पतालसम्म सबैभन्दा सुरक्षित एम्बुलेन्स मार्ग र राहत शिविरसम्म आपूर्ति मार्ग तुरुन्तै पुनः निकाल्छ।",
   },
+  demoChip: { en: "Demo network, hospitals and shelters", hi: "डेमो नेटवर्क, अस्पताल और आश्रय", ne: "डेमो सञ्जाल, अस्पताल र आश्रयस्थल" },
 
-  ne: {
-    code: "ne",
-    nav: { home: "गृहपृष्ठ", features: "सुविधाहरू", ways: "तीन तरिका", about: "हाम्रो बारेमा", dashboard: "ड्यासबोर्ड खोल्नुहोस्", menu: "☰ मेनु" },
-    brand: { name: "Setu", tag: "बाढी सुरक्षित बाटो" },
-    hero: {
-      eyebrow: "सुविधाहरू · काठमाडौं पाइलट",
-      h1a: "भारतदेखि नेपालसम्म।",
-      h1b: "हरेक सुविधा, नक्सामा।",
-      sub: "SETU ले वर्षा र भू-बनोटलाई बाढी-जोखिम नक्सामा बदल्छ र सबैभन्दा सुरक्षित बाटो खोज्छ — दैनिक यात्रु, एम्बुलेन्स र आश्रयतर्फ जाने मानिसहरूका लागि।",
-      plan: ["योजना", "मनसुनअघि — जोखिम नक्सा र अवरोध-बिन्दु प्रतिवेदन।"],
-      alert: ["सतर्कता", "वर्षाको बेला — ३० मिनेटभित्र डुबान हुन सक्ने सडकहरू।"],
-      respond: ["प्रतिकार्य", "सडक बन्द — भरोसासहित तुरुन्तै नयाँ बाटो।"],
-      redAlert: "रेड अलर्ट",
-      alertMsg: "डेमो सतर्कता: ३० मिनेटभित्र सडक डुबान हुन सक्छ — अहिले नै अर्को बाटो लिनुहोस्।",
-      cta1: "सुरक्षित बाटो योजना गर्नुहोस् →",
-      cta2: "सबै सुविधाहरू हेर्नुहोस्",
-      stats: ["सुविधा पूरा", "शहर", "जिल्ला"],
-    },
-    status: { done: "पूरा", starter: "सुरुवाती", partial: "आंशिक", todo: "गर्न बाँकी", roadmap: "रोडम्याप" },
-    feat: {
-      eyebrow: "यसले के गर्छ", h2: "सबै सुविधाहरू, र तिनीहरू कहाँ पुगे।",
-      pieTitle: "श्रेणी अनुसार सुविधाहरू",
-      pieHint: "हरेक टुक्रा सुविधाहरूको एउटा समूह हो। भित्रका सुविधाहरू हेर्न कुनै टुक्रामा क्लिक गर्नुहोस्।",
-      count: (n) => `${n} सुविधाहरू`, doneOf: (d, n) => `${n} मध्ये ${d} पूरा`, share: "सबै सुविधाहरूको",
-      cats: {
-        risk: ["जोखिम नक्साङ्कन", "हरेक सडकलाई अङ्क दिन्छ र पानी कहाँ जम्न सक्छ भनेर देखाउँछ।"],
-        routing: ["सुरक्षित बाटो", "सबैभन्दा सुरक्षित बाटो खोज्छ र त्यो कति भरपर्दो छ भनेर बताउँछ।"],
-        rain: ["वर्षा र प्रत्यक्ष डेटा", "वास्तविक सडक र वर्षा — प्रत्यक्ष, दोहोर्‍याइएको वा हातले मिलाइएको।"],
-        emergency: ["आपतकालीन प्रतिक्रिया", "नगरपालिकाका लागि अलर्ट, एम्बुलेन्स, आश्रयस्थल र रिपोर्ट।"],
-        rollout: ["परीक्षण र कार्यान्वयन", "वास्तविक हटस्पटमा अङ्क जाँच, त्यसपछि प्रत्यक्ष सुरुवात।"],
-      },
-    },
-    features: {
-      roadscore: ["सडक-स्तरको जोखिम अंक", "हरेक OpenStreetMap सडक खण्डले ०–१ को बाढी-जोखिम अंक पाउँछ।"],
-      riskmap: ["अन्तरक्रियात्मक जोखिम नक्सा", "सडकहरू वर्गअनुसार रङ्गिएका। कुनै पनि सडकमा क्लिक गरेर त्यसले यो अंक किन पायो हेर्नुहोस्।"],
-      classes: ["पाँच जोखिम वर्ग", "धेरै कमदेखि धेरै उच्चसम्म। खैरो भनेको डेटा छैन — यसलाई मध्यम मानिन्छ, कहिल्यै सुरक्षित होइन।"],
-      closeopen: ["सडक बन्द र खोल्नुहोस्", "सडक बन्द गर्न क्लिक गर्नुहोस्, फेरि क्लिक गर्दा खुल्छ।"],
-      reroute: ["स्वचालित नयाँ बाटो", "सडक बन्द हुनासाथ वा वर्षा बदलिनासाथ बाटो फेरि निकालिन्छ।"],
-      planner: ["जोखिम-सचेत बाटो योजनाकार", "सुरु र गन्तव्य छान्नुहोस्। लागत = यात्रा समय + λ × जोखिम।"],
-      metrics: ["बाटोको मापन", "हरेक सुझाइएको बाटोको दूरी, समय र औसत जोखिम।"],
-      confidence: ["भरोसा र कारण", "हरियो, पहेँलो वा रातो भरोसा र सरल भाषामा “किन”।"],
-      modes: ["योजना · सतर्कता · प्रतिकार्य", "वर्षाअघि, वर्षाको बेला र पछिका लागि तीन मोड।"],
-      slider: ["वर्षा स्लाइडर", "कुनै पनि परिदृश्यका लागि सुख्खा, मध्यम, भारी र अत्यधिक प्रिसेट।"],
-      chokepoint: ["अवरोध-बिन्दु प्रतिवेदन", "नगरपालिकाका लागि जोखिमक्रममा सडकहरू, CSV डाउनलोडसहित।"],
-      livefeed: ["प्रत्यक्ष वर्षा फिड", "Open-Meteo को वर्षा, माग गर्दा ताजा।"],
-      roadnet: ["वास्तविक सडक सञ्जाल", "OSMnx बाट लोड गरिएका काठमाडौंका सडकहरू।"],
-      replay: ["आँधी रिप्ले", "काठमाडौं बाढीको रिप्ले, सेप्टेम्बर २०२४ (ERA5 पुनर्विश्लेषण, प्रत्यक्ष होइन)।"],
-      shelter: ["आश्रय डेटाबेस", "shelters.csv र OSM, नजिकको आश्रयसम्म रुटिङ। नेपालको डेटा सङ्कलन हुँदैछ।"],
-      ambulance: ["एम्बुलेन्स मोड", "सिग्नल-प्राथमिकता चोकसहित अस्पताल र आश्रयसम्म रुटिङ।"],
-      terrain: ["उचाइ र ढल-निकास मोडेल", "उचाइ, बेसिन गहिराइ र खोलाबाटको दूरी पूरा। फ्लो एक्युमुलेसन र HAND अर्को चरणमा।"],
-      backtest: ["वास्तविक हटस्पटमा ब्याक-टेस्ट", "अंकहरूलाई काठमाडौंका १०–१५ स्रोतसहितका बाढी बिन्दुसँग जाँच्ने।"],
-      deploy: ["वास्तविक प्रयोग", "वडा कार्यालयसँग पाइलट: लगइन, अडिट लग, होस्टेड डेटाबेस, SMS। अहिलेसम्म लागू भएको छैन।"],
-    },
-    engine: {
-      eyebrow: "भित्री कुरा", h2: "पारदर्शी गणित, ब्ल्याक बक्स होइन।",
-      cards: [
-        { tag: "जोखिम इन्जिन", title: "संवेदनशीलता × वर्षा", desc: "S मा होचो उचाइ, बेसिन गहिराइ, खोलाबाटको दूरी र निर्मित घनत्व मिसिन्छन्। यो स्केलिङ प्रमाणित गर्न बाँकी प्रोटोटाइप अनुमान हो।" },
-        { tag: "रुटिङ", title: "बन्द सडकसहित डाइक्स्ट्रा", desc: "वास्तविक सडक ग्राफमा NetworkX डाइक्स्ट्रा। सवारी सीमा जोखिम वर्ग (प्लेसहोल्डर) मा आधारित, बनावटी बाढी गहिराइमा होइन।" },
-        { tag: "सतर्कता नियम", title: "छिट्टै डुबान हुने सम्भावना", desc: "चालक र एम्बुलेन्स टोलीलाई ३० मिनेटको पूर्व-सूचना दिन्छ।" },
-        { tag: "भरोसा", title: "हरियो · पहेँलो · रातो", desc: "हरेक बाटोले आफू कति भरपर्दो छ र किन भन्छ — निर्णयमा सहयोग, सुरक्षाको ग्यारेन्टी होइन।" },
-      ],
-      live: ["प्रत्यक्ष", "Open-Meteo फिड। सुख्खा दिनमा ० उच्च-जोखिम सडक सही देखिन्छ।"],
-      replay: ["रिप्ले", "काठमाडौंको वास्तविक आँधी, सेप्टेम्बर २०२४ — पुनर्विश्लेषण डेटा, स्पष्ट रूपमा चिनो लगाइएको।"],
-      manual: ["म्यानुअल", "सुख्खा, मध्यम, भारी र अत्यधिक परिदृश्यका लागि स्लाइडर।"],
-    },
-    data: {
-      eyebrow: "खुला डेटा मात्र", h2: "निःशुल्क, दोहोर्‍याउन सकिने स्रोतहरू।",
-      head: ["आवश्यकता", "स्रोत", "टिप्पणी"],
-      rows: [
-        ["सडक, अस्पताल, विद्यालय, आश्रय", "पहिले वडाको कभरेज जाँच्नुहोस्"],
-        ["भू-बनोट", "मोटो रिजोलुसन — हामी यो स्पष्ट भन्छौं"],
-        ["वर्षा, प्रत्यक्ष र विगत", "ERA5 ले चरम मानलाई नरम बनाउँछ"],
-        ["आश्रय", "स्रोत र मिति अभिलेखित"],
-        ["बाढी हटस्पट", "ब्याक-टेस्टका लागि"],
-      ],
-      limitsTitle: "इमानदार सीमाहरू",
-      limits: "निर्णयमा सहयोग, सुरक्षाको ग्यारेन्टी होइन। कारकहरूको भार मुम्बईको एक अध्ययनबाट लिइएको हो र नेपालका लागि प्रमाणित नभएसम्म सन्दर्भ मान मात्र हो। भू-बनोट करिब ९० मिटर रिजोलुसनको छ। काठमाडौंका वास्तविक हटस्पटमा ब्याक-टेस्ट पूरा नभएसम्म हामी शुद्धताको कुनै दाबी गर्दैनौं।",
-    },
-    cta: {
-      h2: "पानी आउनुअघि आफ्नो बाटो हेर्नुहोस्।",
-      p: "ड्यासबोर्ड खोल्नुहोस्, वर्षा तय गर्नुहोस् र कुनै सडक बन्द गर्नुहोस् — SETU ले तुरुन्तै नयाँ बाटो निकाल्छ।",
-      b1: "ड्यासबोर्ड खोल्नुहोस् →", b2: "गृहपृष्ठमा फर्कनुहोस्",
-    },
-    footer: {
-      blurb: "बाढी जोखिम र आपत्कालीन सुरक्षित-बाटो नक्सांकक। पाइलट: काठमाडौं, नेपाल।",
-      chip: "प्रोटोटाइप · अहिलेसम्म लागू भएको छैन",
-      explore: "हेर्नुहोस्", all: "सबै सुविधाहरू", how: "यो कसरी काम गर्छ", dataSrc: "डेटा स्रोत",
-      app: "एप", home: "गृहपृष्ठ", dash: "ड्यासबोर्ड", planner: "बाटो योजनाकार", open: "खुला डेटा",
-      copy: "© 2026 SETU · टोली TheLadyBugz_5 · Katathon 6.0 · PS 103",
-      disclaimer: "निर्णयमा सहयोग, सुरक्षाको ग्यारेन्टी होइन।", top: "↑ माथि जानुहोस्",
-    },
-  },
+  kHigh: { en: "High-risk roads", hi: "उच्च जोखिम वाली सड़कें", ne: "उच्च जोखिमका सडक" },
+  kClosed: { en: "Closed roads", hi: "बंद सड़कें", ne: "बन्द सडक" },
+  kInc: { en: "Rescue points", hi: "बचाव बिंदु", ne: "उद्धार बिन्दु" },
+  kAmb: { en: "Reach a hospital", hi: "अस्पताल पहुँच सकते हैं", ne: "अस्पताल पुग्न सक्छन्" },
+  kCamps: { en: "Camps reachable", hi: "पहुँच योग्य शिविर", ne: "पुग्न सकिने शिविर" },
+  of: { en: "of", hi: "में से", ne: "मध्ये" },
+
+  rainTitle: { en: "Rainfall input", hi: "बारिश इनपुट", ne: "वर्षा इनपुट" },
+  live: { en: "Live", hi: "लाइव", ne: "प्रत्यक्ष" },
+  replayT: { en: "Replay", hi: "रिप्ले", ne: "रिप्ले" },
+  manual: { en: "Manual", hi: "मैनुअल", ne: "म्यानुअल" },
+  dry: { en: "Dry", hi: "सूखा", ne: "सुक्खा" },
+  moderate: { en: "Moderate", hi: "मध्यम", ne: "मध्यम" },
+  heavy: { en: "Heavy", hi: "भारी", ne: "भारी" },
+  extreme: { en: "Extreme", hi: "अत्यधिक", ne: "अत्यधिक" },
+  intensity: { en: "Intensity", hi: "तीव्रता", ne: "तीव्रता" },
+  rain24: { en: "Rain in 24 h", hi: "24 घंटे में बारिश", ne: "२४ घण्टामा वर्षा" },
+  liveOk: { en: "Open-Meteo reading. A dry day showing 0 mm is the correct answer.", hi: "Open-Meteo रीडिंग। सूखे दिन 0 मिमी सही उत्तर है।", ne: "Open-Meteo रिडिङ। सुक्खा दिन ० मिमी सही उत्तर हो।" },
+  liveLoading: { en: "Fetching live Kathmandu rainfall…", hi: "काठमांडू की लाइव बारिश ला रहे हैं…", ne: "काठमाडौँको प्रत्यक्ष वर्षा ल्याउँदै…" },
+  liveErr: { en: "Could not reach Open-Meteo. Use Replay or Manual.", hi: "Open-Meteo तक नहीं पहुँच सके। रिप्ले या मैनुअल उपयोग करें।", ne: "Open-Meteo सम्म पुग्न सकिएन। रिप्ले वा म्यानुअल प्रयोग गर्नुहोस्।" },
+  refresh: { en: "Refresh live rain", hi: "लाइव बारिश ताज़ा करें", ne: "प्रत्यक्ष वर्षा ताजा गर्नुहोस्" },
+  replayNote: { en: "Illustrative storm curve, not real data.", hi: "उदाहरण तूफ़ान वक्र, असली डेटा नहीं।", ne: "उदाहरणात्मक आँधी वक्र, वास्तविक डेटा होइन।" },
+
+  toolsTitle: { en: "Map tools", hi: "नक्शा उपकरण", ne: "नक्सा उपकरण" },
+  toolIncident: { en: "Add rescue point", hi: "बचाव बिंदु जोड़ें", ne: "उद्धार बिन्दु थप्नुहोस्" },
+  toolBase: { en: "Set base", hi: "बेस तय करें", ne: "बेस तोक्नुहोस्" },
+  toolOff: { en: "Off", hi: "बंद", ne: "बन्द" },
+  toolHint: { en: "Click a road to close or reopen it. With a tool on, click empty map to place a point.", hi: "सड़क बंद या दोबारा खोलने के लिए उस पर क्लिक करें। उपकरण चालू हो तो खाली नक्शे पर क्लिक करके बिंदु रखें।", ne: "सडक बन्द वा फेरि खोल्न त्यसमा क्लिक गर्नुहोस्। उपकरण खोलेर खाली नक्सामा क्लिक गरी बिन्दु राख्नुहोस्।" },
+  reopenAll: { en: "Reopen all roads", hi: "सभी सड़कें खोलें", ne: "सबै सडक खोल्नुहोस्" },
+  resetPoints: { en: "Reset demo points", hi: "डेमो बिंदु रीसेट करें", ne: "डेमो बिन्दु रिसेट गर्नुहोस्" },
+  recalc: { en: "Recalculated in", hi: "पुनर्गणना में लगा", ne: "पुनर्गणनामा लागेको" },
+
+  contactsTitle: { en: "Emergency contacts", hi: "आपातकालीन संपर्क", ne: "आपतकालीन सम्पर्क" },
+  contactsNote: { en: "Disaster hotline 1234 replaced 1149 in July 2026 (press reports). Confirm with NDRRMA before public use.", hi: "आपदा हॉटलाइन 1234 ने जुलाई 2026 में 1149 की जगह ली (समाचार रिपोर्ट)। सार्वजनिक उपयोग से पहले NDRRMA से पुष्टि करें।", ne: "विपद् हटलाइन १२३४ ले जुलाई २०२६ मा ११४९ को ठाउँ लियो (समाचार प्रतिवेदन)। सार्वजनिक प्रयोगअघि NDRRMA सँग पुष्टि गर्नुहोस्।" },
+
+  mapLegendRoute: { en: "Ambulance route", hi: "एम्बुलेंस मार्ग", ne: "एम्बुलेन्स मार्ग" },
+  mapLegendSupply: { en: "Supply route", hi: "आपूर्ति मार्ग", ne: "आपूर्ति मार्ग" },
+
+  roadTitle: { en: "Road details", hi: "सड़क विवरण", ne: "सडक विवरण" },
+  roadEmpty: { en: "Click any road on the map to see why it has its risk level.", hi: "किसी भी सड़क पर क्लिक करके देखें कि उसका जोखिम स्तर क्यों है।", ne: "कुनै पनि सडकमा क्लिक गरेर जोखिम स्तर किन छ हेर्नुहोस्।" },
+  closed: { en: "Closed", hi: "बंद", ne: "बन्द" },
+  closeRoad: { en: "Close road", hi: "सड़क बंद करें", ne: "सडक बन्द गर्नुहोस्" },
+  reopenRoad: { en: "Reopen road", hi: "सड़क खोलें", ne: "सडक खोल्नुहोस्" },
+  risk: { en: "risk", hi: "जोखिम", ne: "जोखिम" },
+
+  incTitle: { en: "Rescue requests: ambulance dispatch", hi: "बचाव अनुरोध: एम्बुलेंस भेजना", ne: "उद्धार अनुरोध: एम्बुलेन्स पठाउने" },
+  incNote: { en: "Each point is routed to its nearest reachable hospital as an ambulance, with signal priority on main roads. Points hold a location only, no personal details.", hi: "हर बिंदु को एम्बुलेंस के रूप में उसके निकटतम पहुँच योग्य अस्पताल तक रूट किया जाता है, मुख्य सड़कों पर सिग्नल प्राथमिकता के साथ। बिंदु में केवल स्थान है, कोई निजी जानकारी नहीं।", ne: "हरेक बिन्दुलाई एम्बुलेन्सका रूपमा नजिकको पुग्न सकिने अस्पतालसम्म रुट गरिन्छ, मुख्य सडकमा सिग्नल प्राथमिकतासहित। बिन्दुमा स्थान मात्र हुन्छ, व्यक्तिगत विवरण छैन।" },
+  incEmpty: { en: "No rescue points. Turn on “Add rescue point” and click the map.", hi: "कोई बचाव बिंदु नहीं। “बचाव बिंदु जोड़ें” चालू करके नक्शे पर क्लिक करें।", ne: "कुनै उद्धार बिन्दु छैन। “उद्धार बिन्दु थप्नुहोस्” खोलेर नक्सामा क्लिक गर्नुहोस्।" },
+  colPoint: { en: "Point", hi: "बिंदु", ne: "बिन्दु" },
+  colHospital: { en: "Nearest hospital", hi: "निकटतम अस्पताल", ne: "नजिकको अस्पताल" },
+  colTime: { en: "Time", hi: "समय", ne: "समय" },
+  colDist: { en: "Distance", hi: "दूरी", ne: "दूरी" },
+  colConf: { en: "Confidence", hi: "विश्वास", ne: "विश्वास" },
+  noRoute: { en: "No passable route", hi: "कोई पार करने योग्य मार्ग नहीं", ne: "पार गर्न मिल्ने मार्ग छैन" },
+  remove: { en: "Remove", hi: "हटाएँ", ne: "हटाउनुहोस्" },
+  lvlGreen: { en: "High", hi: "उच्च", ne: "उच्च" },
+  lvlAmber: { en: "Medium", hi: "मध्यम", ne: "मध्यम" },
+  lvlRed: { en: "Low", hi: "कम", ne: "कम" },
+  whyTitle: { en: "Why this confidence", hi: "यह विश्वास स्तर क्यों", ne: "यो विश्वास स्तर किन" },
+
+  campTitle: { en: "Relief camps and supply routes", hi: "राहत शिविर और आपूर्ति मार्ग", ne: "राहत शिविर र आपूर्ति मार्ग" },
+  campNote: { en: "Supplies leave the base by road and are split by camp capacity among reachable camps. Capacity-based split is a demo rule. Replace it with real occupancy and need once collected.", hi: "आपूर्ति बेस से सड़क द्वारा निकलती है और पहुँच योग्य शिविरों में क्षमता के अनुसार बाँटी जाती है। क्षमता-आधारित बँटवारा डेमो नियम है। असली भीड़ और ज़रूरत मिलने पर इसे बदलें।", ne: "आपूर्ति बेसबाट सडकमार्गले निस्कन्छ र पुग्न सकिने शिविरबीच क्षमताअनुसार बाँडिन्छ। क्षमतामा आधारित बाँडफाँड डेमो नियम हो। वास्तविक भीड र आवश्यकता सङ्कलन भएपछि यसलाई बदल्नुहोस्।" },
+  units: { en: "Units to distribute (food + medical)", hi: "बाँटने की इकाइयाँ (भोजन + चिकित्सा)", ne: "बाँड्ने इकाई (खाना + औषधि)" },
+  colCamp: { en: "Camp", hi: "शिविर", ne: "शिविर" },
+  colCap: { en: "Capacity", hi: "क्षमता", ne: "क्षमता" },
+  colEta: { en: "Supply ETA", hi: "आपूर्ति ETA", ne: "आपूर्ति ETA" },
+  colUnits: { en: "Units", hi: "इकाइयाँ", ne: "इकाई" },
+  showRoute: { en: "Show route", hi: "मार्ग दिखाएँ", ne: "मार्ग देखाउनुहोस्" },
+  hideRoute: { en: "Hide route", hi: "मार्ग छिपाएँ", ne: "मार्ग लुकाउनुहोस्" },
+  vehicleNote: { en: "Supply vehicle uses car rules (placeholder).", hi: "आपूर्ति वाहन कार के नियम उपयोग करता है (प्लेसहोल्डर)।", ne: "आपूर्ति सवारीले कारका नियम प्रयोग गर्छ (प्लेसहोल्डर)।" },
+  download: { en: "Download response plan (CSV)", hi: "प्रतिक्रिया योजना डाउनलोड करें (CSV)", ne: "प्रतिक्रिया योजना डाउनलोड गर्नुहोस् (CSV)" },
+
+  statsTitle: { en: "Emergency statistics", hi: "आपातकालीन आँकड़े", ne: "आपतकालीन तथ्यांक" },
+  sAvgEta: { en: "Average ambulance time", hi: "औसत एम्बुलेंस समय", ne: "औसत एम्बुलेन्स समय" },
+  sMaxEta: { en: "Longest ambulance time", hi: "सबसे लंबा एम्बुलेंस समय", ne: "सबैभन्दा लामो एम्बुलेन्स समय" },
+  sAvoid: { en: "High-risk road avoided", hi: "बचाई गई उच्च-जोखिम सड़क", ne: "जोगाइएको उच्च-जोखिम सडक" },
+  sExtra: { en: "Extra minutes vs fastest (total)", hi: "सबसे तेज़ से अतिरिक्त मिनट (कुल)", ne: "सबैभन्दा छिटोभन्दा थप मिनेट (जम्मा)" },
+  sNoRoute: { en: "Points with no route", hi: "बिना मार्ग वाले बिंदु", ne: "मार्ग नभएका बिन्दु" },
+  sCalc: { en: "Recalculation time", hi: "पुनर्गणना समय", ne: "पुनर्गणना समय" },
+  statNote: { en: "Computed in the browser from the demo network. No lives-saved or accuracy claims.", hi: "डेमो नेटवर्क से ब्राउज़र में गणना। जान बचाने या सटीकता के कोई दावे नहीं।", ne: "डेमो सञ्जालबाट ब्राउजरमा गणना। ज्यान बचाएको वा शुद्धताको कुनै दाबी छैन।" },
+
+  roadmapTitle: { en: "Roadmap (not in this build)", hi: "रोडमैप (इस संस्करण में नहीं)", ne: "रोडम्याप (यो संस्करणमा छैन)" },
+  roadmapNote: { en: "For the demo story only. Not built, not claimed as deployed.", hi: "केवल डेमो कहानी के लिए। बनाया नहीं गया, तैनात होने का दावा नहीं।", ne: "डेमो कथाका लागि मात्र। बनाइएको होइन, तैनात भएको दाबी होइन।" },
+  limits: { en: "Decision support, not a safety guarantee. Demo road grid, hospitals, shelters and capacities. Risk weights are reference values to be validated for Nepal. Vehicle limits are placeholders. No accuracy claim without ground-truth data.", hi: "निर्णय-सहायता, सुरक्षा की गारंटी नहीं। डेमो सड़क ग्रिड, अस्पताल, आश्रय और क्षमताएँ। जोखिम भार संदर्भ मान हैं जिन्हें नेपाल के लिए जाँचना है। वाहन सीमाएँ प्लेसहोल्डर हैं। ज़मीनी डेटा के बिना सटीकता का कोई दावा नहीं।", ne: "निर्णय-सहायता, सुरक्षाको ग्यारेन्टी होइन। डेमो सडक ग्रिड, अस्पताल, आश्रयस्थल र क्षमता। जोखिम भार सन्दर्भ मान हुन् जसलाई नेपालका लागि जाँच्नुपर्छ। सवारी सीमा प्लेसहोल्डर हुन्। भूमिगत डेटा बिना शुद्धताको कुनै दाबी छैन।" },
+  limitsEngine: { en: "Road names, risk classes and confidence reasons are shown in English.", hi: "सड़कों के नाम, जोखिम वर्ग और विश्वास के कारण अंग्रेज़ी में दिखाए जाते हैं।", ne: "सडकका नाम, जोखिम वर्ग र विश्वासका कारण अङ्ग्रेजीमा देखाइन्छन्।" },
 };
 
-const LANGS = [
-  { code: "en", label: "English", script: "latn" },
-  { code: "hi", label: "हिन्दी", script: "deva" },
-  { code: "ne", label: "नेपाली", script: "deva" },
+const ROADMAP = [
+  { en: "Rescue team management and assignment", hi: "बचाव दल प्रबंधन और नियुक्ति", ne: "उद्धार टोली व्यवस्थापन र खटाइ" },
+  { en: "Damage assessment", hi: "क्षति आकलन", ne: "क्षति मूल्याङ्कन" },
+  { en: "Recovery progress tracking", hi: "पुनर्प्राप्ति प्रगति ट्रैकिंग", ne: "पुनर्लाभ प्रगति अनुगमन" },
+  { en: "Real rescue-request intake and real shelter occupancy", hi: "असली बचाव-अनुरोध प्राप्ति और असली आश्रय भीड़", ne: "वास्तविक उद्धार-अनुरोध सङ्कलन र वास्तविक आश्रय भीड" },
+  { en: "Login, audit log, hosted database, SMS gateway", hi: "लॉगिन, ऑडिट लॉग, होस्टेड डेटाबेस, SMS गेटवे", ne: "लगइन, अडिट लग, होस्टेड डाटाबेस, SMS गेटवे" },
 ];
 
-const LangCtx = createContext(I18N.en);
-const useT = () => useContext(LangCtx);
+// routing options (same defaults as the Dashboard)
+const LAM = 3;
+const ROBUST = true;
 
-/* ------------------------------------------------------------------ */
-/* Features and their status                                           */
-/* Text lives in I18N.<lang>.features[id] = [title, description]       */
-/* ------------------------------------------------------------------ */
-const FEATURES = [
-  { id: "roadscore", status: "done" },
-  { id: "riskmap", status: "done" },
-  { id: "classes", status: "done" },
-  { id: "closeopen", status: "done" },
-  { id: "reroute", status: "done" },
-  { id: "planner", status: "done" },
-  { id: "metrics", status: "done" },
-  { id: "confidence", status: "done" },
-  { id: "modes", status: "done" },
-  { id: "slider", status: "done" },
-  { id: "chokepoint", status: "done" },
-  { id: "livefeed", status: "starter" },
-  { id: "roadnet", status: "starter" },
-  { id: "replay", status: "starter" },
-  { id: "shelter", status: "starter" },
-  { id: "ambulance", status: "starter" },
-  { id: "terrain", status: "partial" },
-  { id: "backtest", status: "todo" },
-  { id: "deploy", status: "roadmap" },
+const fmtKm = (m) => (m >= 1000 ? `${(m / 1000).toFixed(2)} km` : `${Math.round(m)} m`);
+const fmtMin = (t) => `${t.toFixed(1)} min`;
+
+// ---------- background (same look as Home) ----------
+const RIPPLES = [
+  { left: 12, top: 78, delay: 0 }, { left: 32, top: 88, delay: 1.6 }, { left: 55, top: 82, delay: 3.1 },
+  { left: 74, top: 90, delay: 0.8 }, { left: 88, top: 76, delay: 2.4 }, { left: 44, top: 70, delay: 4.2 },
 ];
-
-const COUNTS = FEATURES.reduce((a, f) => ({ ...a, [f.status]: (a[f.status] || 0) + 1 }), {});
-const CITY_COUNT = 3;      // Kathmandu, Pokhara, Biratnagar
-const DISTRICT_COUNT = 77; // Nepal districts
-
-// Feature categories for the pie chart. Every feature id belongs to exactly one category.
-const CATEGORIES = [
-  { key: "risk", color: "#f07167", ids: ["roadscore", "riskmap", "classes", "terrain"] },
-  { key: "routing", color: "#f6bd60", ids: ["closeopen", "reroute", "planner", "metrics", "confidence"] },
-  { key: "rain", color: "#6cb4ee", ids: ["slider", "livefeed", "roadnet", "replay"] },
-  { key: "emergency", color: "#f497b6", ids: ["modes", "chokepoint", "shelter", "ambulance"] },
-  { key: "rollout", color: "#84dcc6", ids: ["backtest", "deploy"] },
-];
-const FEATURE_BY_ID = Object.fromEntries(FEATURES.map((f) => [f.id, f]));
-
-// One slice per category; its angle is proportional to how many features it holds.
-const CAT_SLICES = (() => {
-  const total = CATEGORIES.reduce((s, c) => s + c.ids.length, 0);
-  let a = -Math.PI / 2 - 0.35;
-  return CATEGORIES.map((c) => {
-    const span = (c.ids.length / total) * Math.PI * 2;
-    const feats = c.ids.map((id) => FEATURE_BY_ID[id]);
-    const s = { c, feats, a0: a, a1: a + span, mid: a + span / 2, pct: (c.ids.length / total) * 100, done: feats.filter((f) => f.status === "done").length };
-    a += span;
-    return s;
-  });
-})();
-
-const ENGINE_CODE = [
-  "risk = S × (0.12 + 0.88·L)\nL = 0.65·rain/40\n  + 0.35·rain24h/150\nL capped at 1",
-  "cost = time + λ·risk\nclosed road → removed\nrobust = worst of\nrain −20% · 0 · +30%",
-  "now      < High\n+30 min  ≥ High\n(same rain rate)\n→ flag the road",
-  "max road risk\n+ average risk\n+ no-data share\n+ robust? live rain?",
-];
-
-const SOURCE_NAMES = [
-  "OpenStreetMap via OSMnx",
-  "Open-Meteo elevation (Copernicus, ~90 m) or SRTM",
-  "Open-Meteo forecast & archive (ERA5)",
-  "shelters.csv · municipal, NDRRMA / BIPAD, OSM",
-  "News, municipal & NDRRMA reports, Sentinel-1",
-];
-
-/* ------------------------------------------------------------------ */
-/* Small hook: true once the element has scrolled into view            */
-/* ------------------------------------------------------------------ */
-function useInView(threshold = 0.3) {
-  const ref = useRef(null);
-  const [seen, setSeen] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || seen) return;
-    if (typeof IntersectionObserver === "undefined") { setSeen(true); return; }
-    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setSeen(true); io.disconnect(); } }, { threshold });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [seen, threshold]);
-  return [ref, seen];
-}
-
-/* ------------------------------------------------------------------ */
-/* Logo + brand                                                        */
-/* ------------------------------------------------------------------ */
-function Logo({ small = false }) {
-  const list = useContext(LogoCtx);
-  const [i, setI] = useState(0); // index of the logo file being tried
-  const imgRef = useRef(null);
-  const failed = i >= list.length;
-  const tryNext = () => setI((n) => n + 1);
-  // With server rendering the image can fail before React attaches onError — check once mounted.
-  useEffect(() => {
-    const img = imgRef.current;
-    if (img && img.complete && img.naturalWidth === 0) tryNext();
-  }, [i]);
+function Background() {
   return (
-    <span className={`fx-nav-logo ${small ? "small" : ""}`}>
-      {failed ? <span className="fx-logo-fallback">S</span> : <img key={i} ref={imgRef} src={list[i]} alt="SETU logo" onError={tryNext} />}
-    </span>
-  );
-}
-
-function Brand() {
-  const t = useT();
-  return (
-    <a href="/" className="fx-nav-brand">
-      <Logo />
-      <span className="fx-nav-brandtext">
-        <span className="fx-nav-name">{t.brand.name}</span>
-        <span className="fx-nav-tag">{t.brand.tag}</span>
-      </span>
-    </a>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Plan · Alert · Respond — right side of the hero, 3 rows, one by one */
-/* ------------------------------------------------------------------ */
-const MODES = [
-  { key: "plan", color: "#9fded6", no: "01" },
-  { key: "alert", color: "#ef5b5b", no: "02" },
-  { key: "respond", color: "#7fcfb0", no: "03" },
-];
-
-function Modes() {
-  const t = useT();
-  const [live, setLive] = useState(false);
-  return (
-    <div className="fx-mode-list" id="ways">
-      {MODES.map((m, i) => {
-        const isAlert = m.key === "alert";
-        return (
-          <div
-            key={m.key}
-            className={`fx-mode fx-mode-${m.key} ${isAlert && live ? "live" : ""}`}
-            style={{ "--mc": m.color, "--d": `${0.15 + i * 0.35}s` }}
-            tabIndex={0}
-          >
-            <span className="fx-mode-no">{m.no}</span>
-            <div className="fx-mode-body">
-              <span className="fx-mode-name">{t.hero[m.key][0]}</span>
-              <p>{t.hero[m.key][1]}</p>
-              {isAlert && (
-                <>
-                  <button className="fx-redbtn" onClick={() => setLive((v) => !v)} aria-pressed={live}>
-                    <span className="fx-bulb" aria-hidden="true" />
-                    {t.hero.redAlert}
-                  </button>
-                  {live && <p className="fx-alertmsg" role="alert">{t.hero.alertMsg}</p>}
-                </>
-              )}
-            </div>
-          </div>
-        );
-      })}
+    <div className="home-bg" aria-hidden="true">
+      <div className="home-bg-img" />
+      <div className="home-bg-overlay" />
+      <span className="bg-orb bg-orb-1" />
+      <span className="bg-orb bg-orb-2" />
+      <span className="bg-orb bg-orb-3" />
+      <div className="home-bg-rain" />
+      {RIPPLES.map((r, i) => (
+        <span key={i} className="bg-ripple" style={{ left: `${r.left}%`, top: `${r.top}%`, animationDelay: `${r.delay}s` }} />
+      ))}
+      <div className="home-bg-vignette" />
     </div>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* Pie chart: one slice per feature category, name written on slice    */
-/* ------------------------------------------------------------------ */
-const PIE_W = 680, PIE_H = 470, PIE_CX = 340, PIE_CY = 235, PIE_R = 160;
-const pieAt = (r, a) => [PIE_CX + r * Math.cos(a), PIE_CY + r * Math.sin(a)];
-function wedgePath(a0, a1) {
-  const large = a1 - a0 > Math.PI ? 1 : 0;
-  const [x0, y0] = pieAt(PIE_R, a0), [x1, y1] = pieAt(PIE_R, a1);
-  return `M${PIE_CX},${PIE_CY} L${x0.toFixed(2)},${y0.toFixed(2)} A${PIE_R},${PIE_R} 0 ${large} 1 ${x1.toFixed(2)},${y1.toFixed(2)} Z`;
-}
-// Split a category name onto two lines so it fits inside its slice.
-const nameLines = (name) => {
-  const i = name.indexOf(" ");
-  return i === -1 ? [name] : [name.slice(0, i), name.slice(i + 1)];
-};
-
-function FeaturePie() {
-  const t = useT();
-  const [ref, seen] = useInView(0.25);
-  const [sel, setSel] = useState(CAT_SLICES[1].c.key);
-  const cur = CAT_SLICES.find((s) => s.c.key === sel) || CAT_SLICES[0];
-
-  return (
-    <div ref={ref} className={`fx-cpie ${seen ? "run" : ""}`}>
-      <div className="fx-cpie-chart">
-        <p className="fx-cpie-title">{t.feat.pieTitle}</p>
-        <svg viewBox={`0 0 ${PIE_W} ${PIE_H}`} className="fx-cpie-svg" role="group" aria-label={t.feat.pieTitle}>
-          {CAT_SLICES.map((s, i) => {
-            const on = s.c.key === sel;
-            const cos = Math.cos(s.mid), sin = Math.sin(s.mid);
-            const [ix, iy] = pieAt(PIE_R * 0.64, s.mid);
-            const [l0x, l0y] = pieAt(PIE_R + 6, s.mid);
-            const [l1x, l1y] = pieAt(PIE_R + 26, s.mid);
-            const right = cos >= 0;
-            const l2x = l1x + (right ? 16 : -16);
-            const lines = nameLines(t.feat.cats[s.c.key][0]);
-            const top = iy - (lines.length * 16 + 22) / 2 + 8;
-            return (
-              <g
-                key={s.c.key}
-                className={`fx-cpie-slice ${on ? "on" : ""}`}
-                style={{ "--c": s.c.color, "--dx": `${(cos * 18).toFixed(1)}px`, "--dy": `${(sin * 18).toFixed(1)}px` }}
-                tabIndex={0}
-                role="button"
-                aria-pressed={on}
-                aria-label={`${t.feat.cats[s.c.key][0]} — ${t.feat.count(s.c.ids.length)}`}
-                onClick={() => setSel(s.c.key)}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSel(s.c.key); } }}
-              >
-                <g className="fx-cpie-grow" style={{ animationDelay: `${i * 0.12}s` }}>
-                  <path d={wedgePath(s.a0, s.a1)} fill={s.c.color} />
-                  {lines.map((ln, k) => (
-                    <text key={k} x={ix} y={top + k * 16} className="fx-cpie-inname">{ln}</text>
-                  ))}
-                  <text x={ix} y={top + lines.length * 16 + 6} className="fx-cpie-pct">{s.pct.toFixed(1)}%</text>
-                </g>
-                <g className="fx-cpie-label" style={{ animationDelay: `${0.5 + i * 0.12}s` }}>
-                  <polyline points={`${l0x},${l0y} ${l1x},${l1y} ${l2x},${l1y}`} />
-                  <text x={l2x + (right ? 6 : -6)} y={l1y + 4} textAnchor={right ? "start" : "end"} className="fx-cpie-count">{t.feat.count(s.c.ids.length)}</text>
-                </g>
-              </g>
-            );
-          })}
-        </svg>
-        <div className="fx-cpie-legend">
-          {CAT_SLICES.map((s) => (
-            <button key={s.c.key} className={s.c.key === sel ? "on" : ""} style={{ "--c": s.c.color }} onClick={() => setSel(s.c.key)} aria-pressed={s.c.key === sel}>
-              <i />{t.feat.cats[s.c.key][0]}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="fx-cpie-side" style={{ "--c": cur.c.color }}>
-        <p className="fx-cpie-hint">{t.feat.pieHint}</p>
-        <div className="fx-cpie-detail" key={cur.c.key}>
-          <h3>{t.feat.cats[cur.c.key][0]}</h3>
-          <span className="fx-cpie-meta">{t.feat.count(cur.c.ids.length)} · {cur.pct.toFixed(1)}% {t.feat.share} · {t.feat.doneOf(cur.done, cur.c.ids.length)}</span>
-          <p className="fx-cpie-desc">{t.feat.cats[cur.c.key][1]}</p>
-          <ul className="fx-cpie-list">
-            {cur.feats.map((f, i) => (
-              <li key={f.id} style={{ animationDelay: `${i * 60}ms` }}>
-                <div>
-                  <b>{t.features[f.id][0]}</b>
-                  <p>{t.features[f.id][1]}</p>
-                </div>
-                <span className={`fx-badge fx-badge-xs fx-badge-${f.status}`}>{t.status[f.status]}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-export default function Features({ logo }) {
-  // Start in English on the server, then restore the saved choice in the browser.
+// ---------- page ----------
+export default function Respond() {
+  // language (same storage key as the Features page)
   const [lang, setLangState] = useState("en");
   useEffect(() => {
-    try { const saved = localStorage.getItem("setu-lang"); if (saved && I18N[saved]) setLangState(saved); } catch { /* ignore */ }
+    try { const s = localStorage.getItem("setu-lang"); if (s && LANGUAGES.some((l) => l.code === s)) setLangState(s); } catch { /* ignore */ }
   }, []);
-  const setLang = (code) => {
-    setLangState(code);
-    try { localStorage.setItem("setu-lang", code); } catch { /* ignore */ }
-  };
-  const t = I18N[lang] || I18N.en;
-  const script = (LANGS.find((l) => l.code === lang) || LANGS[0]).script;
+  const setLang = (c) => { setLangState(c); try { localStorage.setItem("setu-lang", c); } catch { /* ignore */ } };
+  const tr = (o) => (typeof o === "string" ? o : o[lang] ?? o.en);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // rain
+  const [source, setSource] = useState("manual");
+  const [manual, setManual] = useState({ intensity: 25, rain24: 110 });
+  const [live, setLive] = useState({ status: "idle", intensity: 0, rain24: 0, at: null });
+  const [frame, setFrame] = useState(26);
+  const [playing, setPlaying] = useState(false);
+  const rain = source === "live" ? live : source === "replay" ? replay[frame] : manual;
+  const { intensity, rain24 } = rain;
+  const isLive = source === "live" && live.status === "ok";
+
+  const fetchLive = useCallback(async () => {
+    setLive((l) => ({ ...l, status: "loading" }));
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${CENTER[0]}&longitude=${CENTER[1]}&current=precipitation&hourly=precipitation&past_days=1&forecast_days=1&timezone=auto`;
+      const d = await (await fetch(url)).json();
+      const now = new Date(d.current.time).getTime();
+      const past = d.hourly.time
+        .map((t, i) => ({ t: new Date(t).getTime(), p: d.hourly.precipitation[i] ?? 0 }))
+        .filter((x) => x.t <= now && x.t > now - 24 * 3600e3);
+      setLive({
+        status: "ok",
+        intensity: d.current.precipitation ?? 0,
+        rain24: Math.round(past.reduce((s, x) => s + x.p, 0) * 10) / 10,
+        at: d.current.time,
+      });
+    } catch {
+      setLive((l) => ({ ...l, status: "error" }));
+    }
+  }, []);
+  useEffect(() => { if (source === "live" && live.status === "idle") fetchLive(); }, [source, live.status, fetchLive]);
+
+  useEffect(() => {
+    if (!playing) return undefined;
+    const t = setInterval(() => setFrame((f) => {
+      if (f >= replay.length - 1) { setPlaying(false); return f; }
+      return f + 1;
+    }), 450);
+    return () => clearInterval(t);
+  }, [playing]);
+
+  // scenario
+  const [closed, setClosed] = useState(() => new Set());
+  const [selectedRoad, setSelectedRoad] = useState(null);
+  const [incidents, setIncidents] = useState(START_INCIDENTS);
+  const [base, setBase] = useState(START_BASE);
+  const [tool, setTool] = useState("off");
+  const [selectedInc, setSelectedInc] = useState(null);
+  const [selectedCamp, setSelectedCamp] = useState(null);
+  const [units, setUnits] = useState(1000);
+  const nextId = useRef(3);
+
+  const toggleClosed = useCallback((id) => {
+    setClosed((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  }, []);
+
+  const onMapClick = useCallback((latlng, toolNow) => {
+    const node = nearestNode(net, latlng);
+    if (toolNow === "incident") {
+      setIncidents((list) => [...list, { id: nextId.current++, node }]);
+    } else if (toolNow === "base") {
+      setBase(node);
+      setTool("off");
+    }
+  }, []);
+
+  // risk per road
+  const risks = useMemo(() => net.edges.map((e) => edgeRisk(e.S, intensity, rain24)), [intensity, rain24]);
+  const highCount = useMemo(
+    () => net.edges.reduce((n, e, i) => n + (e.S != null && riskClass(risks[i]) >= 3 ? 1 : 0), 0),
+    [risks],
+  );
+
+  // all routes
+  const calc = useMemo(() => {
+    const t0 = performance.now();
+    const common = { closed, intensity, rain24 };
+    const inc = incidents.map((p) => {
+      const o = { ...common, start: p.node, targets: hospitalNodes, vehicle: "ambulance" };
+      const safe = route(net, { ...o, lam: LAM, robust: ROBUST });
+      const fast = route(net, { ...o, lam: 0, robust: false, ignoreRisk: true });
+      return { ...p, safe, fast, conf: confidence(safe, { robust: ROBUST, live: isLive }) };
+    });
+    const camps = shelters.map((s) => {
+      const r = route(net, { ...common, start: base, targets: [s.node], vehicle: "car", lam: LAM, robust: ROBUST });
+      return { ...s, r, conf: confidence(r, { robust: ROBUST, live: isLive }) };
+    });
+    return { inc, camps, ms: performance.now() - t0 };
+  }, [incidents, base, closed, intensity, rain24, isLive]);
+
+  // capacity-based split among reachable camps (largest-remainder rounding)
+  const alloc = useMemo(() => {
+    const total = Math.max(0, Math.min(100000, Math.floor(Number(units) || 0)));
+    const reach = calc.camps.filter((c) => c.r);
+    const cap = reach.reduce((s, c) => s + (c.capacity || 0), 0);
+    const out = {};
+    let given = 0;
+    const rem = [];
+    reach.forEach((c) => {
+      const exact = cap ? (total * c.capacity) / cap : 0;
+      const fl = Math.floor(exact);
+      out[c.id] = fl; given += fl; rem.push([c.id, exact - fl]);
+    });
+    rem.sort((a, b) => b[1] - a[1]);
+    for (let i = 0; i < total - given && i < rem.length; i++) out[rem[i][0]]++;
+    return out;
+  }, [calc.camps, units]);
+
+  // statistics (measured here from the engine)
+  const stats = useMemo(() => {
+    const ok = calc.inc.filter((p) => p.safe);
+    const times = ok.map((p) => p.safe.time);
+    return {
+      reachable: ok.length,
+      noRoute: calc.inc.length - ok.length,
+      avg: times.length ? times.reduce((a, b) => a + b, 0) / times.length : null,
+      max: times.length ? Math.max(...times) : null,
+      avoided: ok.reduce((s, p) => s + (p.fast ? Math.max(0, p.fast.highMeters - p.safe.highMeters) : 0), 0),
+      extra: ok.reduce((s, p) => s + (p.fast ? Math.max(0, p.safe.time - p.fast.time) : 0), 0),
+      campsOk: calc.camps.filter((c) => c.r).length,
+    };
+  }, [calc]);
+
+  // ---------- Leaflet map ----------
+  const mapEl = useRef(null);
+  const map = useRef(null);
+  const layers = useRef({});
+  const handlers = useRef({});
+  handlers.current = { toggleClosed, setSelectedRoad, setSelectedInc, onMapClick, tool };
+
+  useEffect(() => {
+    if (map.current || !mapEl.current) return undefined;
+    const m = L.map(mapEl.current, { zoomControl: false, attributionControl: true, zoomSnap: 0.25 }).setView(CENTER, 14);
+    L.control.zoom({ position: "bottomright" }).addTo(m);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap contributors" }).addTo(m);
+    L.polyline(RIVER_LINE, { color: "#38bdf8", weight: 9, opacity: 0.22, interactive: false }).addTo(m);
+    L.polyline(RIVER_LINE, { color: "#7dd3fc", weight: 2, opacity: 0.7, dashArray: "2 6", interactive: false }).addTo(m);
+    layers.current = { roads: L.layerGroup().addTo(m), routes: L.layerGroup().addTo(m), marks: L.layerGroup().addTo(m) };
+    m.on("click", (ev) => handlers.current.onMapClick([ev.latlng.lat, ev.latlng.lng], handlers.current.tool));
+    const bounds = L.latLngBounds(net.nodes.map((n) => n.pos));
+    m.fitBounds(bounds, { padding: [20, 20] });
+    map.current = m;
+    let first = true;
+    const ro = new ResizeObserver(() => {
+      m.invalidateSize();
+      if (first) { m.fitBounds(bounds, { padding: [30, 30] }); first = false; }
+    });
+    ro.observe(mapEl.current);
+    return () => { ro.disconnect(); m.remove(); map.current = null; };
+  }, []);
+
+  // roads
+  useEffect(() => {
+    const g = layers.current.roads;
+    if (!g) return;
+    g.clearLayers();
+    net.edges.forEach((e, i) => {
+      const isClosed = closed.has(e.id);
+      const info = edgeClassInfo(e, risks[i]);
+      const line = L.polyline(e.coords, {
+        color: isClosed ? "#0b0f19" : info.color,
+        weight: e.primary ? 6 : 4,
+        opacity: isClosed ? 0.95 : 0.85,
+        dashArray: isClosed ? "4 6" : null,
+        lineCap: "round",
+      });
+      if (isClosed) L.polyline(e.coords, { color: "#ef4444", weight: 2, opacity: 0.9, interactive: false }).addTo(g);
+      if (selectedRoad === e.id) L.polyline(e.coords, { color: "#ffffff", weight: (e.primary ? 6 : 4) + 6, opacity: 0.35, interactive: false }).addTo(g);
+      line.bindTooltip(`${e.name} · ${isClosed ? "CLOSED" : info.label}`, { sticky: true, className: "rs-tip" });
+      line.on("click", (ev) => {
+        L.DomEvent.stopPropagation(ev);
+        handlers.current.toggleClosed(e.id);
+        handlers.current.setSelectedRoad(e.id);
+      });
+      line.addTo(g);
+    });
+  }, [risks, closed, selectedRoad]);
+
+  // routes + markers
+  useEffect(() => {
+    const g = layers.current.routes, mk = layers.current.marks;
+    if (!g || !mk) return;
+    g.clearLayers(); mk.clearLayers();
+
+    calc.inc.forEach((p) => {
+      if (!p.safe) return;
+      const on = selectedInc === p.id;
+      L.polyline(p.safe.coords, { color: "#22d3ee", weight: on ? 16 : 12, opacity: on ? 0.3 : 0.14, interactive: false }).addTo(g);
+      L.polyline(p.safe.coords, { color: on ? "#a5f3fc" : "#22d3ee", weight: on ? 6 : 4, opacity: 1, interactive: false }).addTo(g);
+    });
+    const camp = calc.camps.find((c) => c.id === selectedCamp);
+    if (camp?.r) {
+      L.polyline(camp.r.coords, { color: "#f5c451", weight: 5, opacity: 0.95, dashArray: "8 8", interactive: false }).addTo(g);
+    }
+
+    facilities.forEach((f) => {
+      L.marker(f.pos, {
+        icon: L.divIcon({ className: "", html: `<div class="rs-pin rs-pin--${f.type}">${f.type === "hospital" ? "H" : "S"}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] }),
+      }).bindTooltip(`${f.name}${f.capacity ? ` · cap ${f.capacity}` : ""}`, { className: "rs-tip" }).addTo(mk);
+    });
+    calc.inc.forEach((p, i) => {
+      L.marker(net.nodes[p.node].pos, {
+        icon: L.divIcon({ className: "", html: `<div class="rs-pin rs-pin--incident${selectedInc === p.id ? " is-on" : ""}">${i + 1}</div>`, iconSize: [28, 28], iconAnchor: [14, 14] }),
+      }).on("click", () => handlers.current.setSelectedInc(p.id)).addTo(mk);
+    });
+    L.marker(net.nodes[base].pos, {
+      icon: L.divIcon({ className: "", html: `<div class="rs-pin rs-pin--base">B</div>`, iconSize: [28, 28], iconAnchor: [14, 14] }),
+      interactive: false,
+    }).addTo(mk);
+  }, [calc, selectedInc, selectedCamp, base]);
+
+  // crosshair cursor while a tool is on
+  useEffect(() => {
+    if (mapEl.current) mapEl.current.classList.toggle("rs-map--tool", tool !== "off");
+  }, [tool]);
+
+  // ---------- helpers ----------
+  const sel = selectedRoad ? net.edges.find((e) => e.id === selectedRoad) : null;
+  const selIdx = sel ? net.edges.indexOf(sel) : -1;
+  const hospitalName = (node) => hospitals.find((h) => h.node === node)?.name ?? "—";
+  const selIncData = calc.inc.find((p) => p.id === selectedInc);
+  const lvl = (level) => tr(T[level === "green" ? "lvlGreen" : level === "amber" ? "lvlAmber" : "lvlRed"]);
+
+  const resetPoints = () => {
+    setIncidents(START_INCIDENTS);
+    nextId.current = 3;
+    setBase(START_BASE);
+    setSelectedInc(null);
+    setSelectedCamp(null);
+    setTool("off");
+  };
+
+  const downloadCsv = () => {
+    const rows = [["type", "name", "destination", "distance_m", "time_min", "confidence", "units"]];
+    calc.inc.forEach((p, i) => rows.push([
+      "ambulance", `Rescue point ${i + 1}`, p.safe ? hospitalName(p.safe.target) : "no route",
+      p.safe ? Math.round(p.safe.distance) : "", p.safe ? p.safe.time.toFixed(1) : "", p.conf.label, "",
+    ]));
+    calc.camps.forEach((c) => rows.push([
+      "supply", "Base", c.name, c.r ? Math.round(c.r.distance) : "", c.r ? c.r.time.toFixed(1) : "",
+      c.conf.label, c.r ? alloc[c.id] ?? 0 : 0,
+    ]));
+    const csv = rows.map((r) => r.map((v) => (/[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v)).join(",")).join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    a.download = "setu_response_plan.csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const sourceNote =
+    source === "live" ? (live.status === "ok" ? `${tr(T.liveOk)} (${live.at?.replace("T", " ")})` : live.status === "error" ? tr(T.liveErr) : tr(T.liveLoading))
+      : source === "replay" ? tr(T.replayNote) : "";
+
+  const langClass = lang === "en" ? "" : `lang-hi lang-${lang}`;
+
   return (
-    <LogoCtx.Provider value={logo ? [logo] : LOGO_LIST}>
-    <LangCtx.Provider value={t}>
-      <div className="features" lang={lang} data-script={script}>
-        {/* NAVBAR */}
-        <header className="fx-nav">
-          <Brand />
-          <nav className={`fx-nav-links ${menuOpen ? "open" : ""}`} onClick={() => setMenuOpen(false)}>
-            <a href="/">{t.nav.home}</a>
-            <a href="#all" className="active">{t.nav.features}</a>
-            <a href="#ways">{t.nav.ways}</a>
-            <a href="#about">{t.nav.about}</a>
-          </nav>
-          <div className="fx-nav-actions">
-            <div className="fx-lang" role="group" aria-label="Language">
-              {LANGS.map((l) => (
-                <button key={l.code} lang={l.code} className={lang === l.code ? "active" : ""} aria-pressed={lang === l.code} onClick={() => setLang(l.code)}>{l.label}</button>
-              ))}
-            </div>
-            <a href="/dashboard" className="fx-btn fx-btn-primary fx-btn-sm">{t.nav.dashboard}</a>
-            <button className="fx-menu-btn" onClick={() => setMenuOpen(!menuOpen)}>{t.nav.menu}</button>
-          </div>
-        </header>
+    <div className={`home rs-page ${langClass}`} lang={lang}>
+      <Background />
 
-        {/* HERO: text on the left, Plan / Alert / Respond on the right in 3 rows */}
-        <section className="fx-hero" id="live">
-          <div className="fx-hero-text">
-            <p className="fx-eyebrow">{t.hero.eyebrow}</p>
-            <h1>{t.hero.h1a}<br /><span className="fx-accent">{t.hero.h1b}</span></h1>
-            <p className="fx-sub">{t.hero.sub}</p>
-            <div className="fx-hero-stats">
-              <div><b>{COUNTS.done || 0}/{FEATURES.length}</b><span>{t.hero.stats[0]}</span></div>
-              <div><b>{CITY_COUNT}</b><span>{t.hero.stats[1]}</span></div>
-              <div><b>{DISTRICT_COUNT}</b><span>{t.hero.stats[2]}</span></div>
-            </div>
-            <div className="fx-cta-row">
-              <a href="/route-planner" className="fx-btn fx-btn-primary">{t.hero.cta1}</a>
-              <a href="#all" className="fx-btn fx-btn-ghost">{t.hero.cta2}</a>
-            </div>
+      {/* NAVBAR (same look as Home) */}
+      <header className="nav">
+        <Link to="/" className="nav-brand" aria-label="Setu home">
+          <span className="setu-mark" aria-hidden="true"><img src={setuLogo} alt="" /></span>
+          <span className="setu-word">
+            <span className="nav-name">Setu</span>
+            <span className="nav-sub">{tr(T.navSub)}</span>
+          </span>
+        </Link>
+        <nav className={`nav-links ${menuOpen ? "open" : ""}`} onClick={() => setMenuOpen(false)}>
+          <Link to="/">{tr(T.navHome)}</Link>
+          <Link to="/Features">{tr(T.navFeatures)}</Link>
+          <Link to="/dashboard">{tr(T.navDashboard)}</Link>
+          <Link to="/About">{tr(T.navAbout)}</Link>
+        </nav>
+        <div className="nav-actions">
+          <div className="lang-toggle" role="group" aria-label="Language">
+            {LANGUAGES.map((l) => (
+              <button key={l.code} className={lang === l.code ? "on" : ""} onClick={() => setLang(l.code)} lang={l.code}>{l.label}</button>
+            ))}
           </div>
-          <Modes />
+          <Link to="/dashboard" className="btn btn-primary btn-sm hide-mobile">{tr(T.openDash)}</Link>
+          <button className="menu-btn" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">{menuOpen ? "✕" : "☰"}</button>
+        </div>
+      </header>
+
+      <main className="rs-main">
+        {/* HERO */}
+        <section className="rs-hero">
+          <p className="eyebrow">{tr(T.eyebrow)}</p>
+          <h1>{tr(T.h1a)} <span className="accent">{tr(T.h1b)}</span></h1>
+          <p className="rs-sub">{tr(T.sub)}</p>
+          <span className="rs-chip"><i />{tr(T.demoChip)}</span>
         </section>
 
-        {/* FEATURES: CATEGORY PIE */}
-        <section className="fx-section" id="all">
-          <p className="fx-eyebrow">{t.feat.eyebrow}</p>
-          <h2>{t.feat.h2}</h2>
-          <FeaturePie />
+        {/* EMERGENCY OVERVIEW */}
+        <section className="rs-kpis">
+          <div className="rs-kpi rs-kpi--warn"><b>{highCount}</b><small>/ {net.edges.length}</small><span>{tr(T.kHigh)}</span></div>
+          <div className="rs-kpi rs-kpi--red"><b>{closed.size}</b><span>{tr(T.kClosed)}</span></div>
+          <div className="rs-kpi"><b>{incidents.length}</b><span>{tr(T.kInc)}</span></div>
+          <div className="rs-kpi rs-kpi--ok"><b>{stats.reachable}</b><small>{tr(T.of)} {incidents.length}</small><span>{tr(T.kAmb)}</span></div>
+          <div className="rs-kpi rs-kpi--ok"><b>{stats.campsOk}</b><small>{tr(T.of)} {shelters.length}</small><span>{tr(T.kCamps)}</span></div>
         </section>
 
-        {/* ENGINE */}
-        <section className="fx-section" id="engine">
-          <p className="fx-eyebrow">{t.engine.eyebrow}</p>
-          <h2>{t.engine.h2}</h2>
-          <div className="fx-engine">
-            {t.engine.cards.map((e, i) => (
-              <div className="fx-engine-card" key={i}>
-                <span className="fx-engine-tag">{e.tag}</span>
-                <h3>{e.title}</h3>
-                <pre>{ENGINE_CODE[i]}</pre>
-                <p>{e.desc}</p>
+        {/* CONTROLS + MAP */}
+        <section className="rs-grid">
+          <aside className="rs-side">
+            <div className="rs-card">
+              <h3>{tr(T.rainTitle)}</h3>
+              <div className="rs-seg">
+                {[["live", T.live], ["replay", T.replayT], ["manual", T.manual]].map(([k, l]) => (
+                  <button key={k} className={source === k ? "on" : ""} onClick={() => { setSource(k); setPlaying(false); }}>{tr(l)}</button>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="fx-rain-sources">
-            <div><span className="fx-dot fx-dot-live" /><b>{t.engine.live[0]}</b><p>{t.engine.live[1]}</p></div>
-            <div><span className="fx-dot fx-dot-replay" /><b>{t.engine.replay[0]}</b><p>{t.engine.replay[1]}</p></div>
-            <div><span className="fx-dot fx-dot-manual" /><b>{t.engine.manual[0]}</b><p>{t.engine.manual[1]}</p></div>
+              {source === "live" && (
+                <button className="rs-btn rs-btn--ghost" onClick={fetchLive}>↻ {tr(T.refresh)}</button>
+              )}
+              {source === "replay" && (
+                <div className="rs-replay">
+                  <button className="rs-play" onClick={() => { if (frame >= replay.length - 1) setFrame(0); setPlaying((p) => !p); }}>{playing ? "❚❚" : "▶"}</button>
+                  <input type="range" min="0" max={replay.length - 1} value={frame} onChange={(e) => { setPlaying(false); setFrame(+e.target.value); }} />
+                  <span>H{String(frame).padStart(2, "0")}</span>
+                </div>
+              )}
+              {source === "manual" && (
+                <>
+                  <div className="rs-presets">
+                    {Object.entries(PRESETS).map(([k, p]) => (
+                      <button key={k} className={manual.intensity === p.intensity && manual.rain24 === p.rain24 ? "on" : ""} onClick={() => setManual({ intensity: p.intensity, rain24: p.rain24 })}>{tr(T[k])}</button>
+                    ))}
+                  </div>
+                  <label className="rs-slider">
+                    <span>{tr(T.intensity)} <b>{manual.intensity} mm/h</b></span>
+                    <input type="range" min="0" max="60" value={manual.intensity} onChange={(e) => setManual((m) => ({ ...m, intensity: +e.target.value }))} />
+                  </label>
+                  <label className="rs-slider">
+                    <span>{tr(T.rain24)} <b>{manual.rain24} mm</b></span>
+                    <input type="range" min="0" max="250" value={manual.rain24} onChange={(e) => setManual((m) => ({ ...m, rain24: +e.target.value }))} />
+                  </label>
+                </>
+              )}
+              <p className="rs-note">
+                {intensity} mm/h · {rain24} mm · {(rainfallLoading(intensity, rain24) * 100).toFixed(0)}%
+                {sourceNote && <><br />{sourceNote}</>}
+              </p>
+            </div>
+
+            <div className="rs-card">
+              <h3>{tr(T.toolsTitle)}</h3>
+              <div className="rs-seg">
+                {[["incident", T.toolIncident], ["base", T.toolBase], ["off", T.toolOff]].map(([k, l]) => (
+                  <button key={k} className={tool === k ? "on" : ""} onClick={() => setTool(k)}>{tr(l)}</button>
+                ))}
+              </div>
+              <p className="rs-note">{tr(T.toolHint)}</p>
+              <div className="rs-row">
+                <button className="rs-btn rs-btn--ghost" onClick={() => { setClosed(new Set()); setSelectedRoad(null); }} disabled={!closed.size}>{tr(T.reopenAll)} ({closed.size})</button>
+                <button className="rs-btn rs-btn--ghost" onClick={resetPoints}>{tr(T.resetPoints)}</button>
+              </div>
+            </div>
+
+            <div className="rs-card">
+              <h3>{tr(T.contactsTitle)}</h3>
+              <div className="rs-contacts">
+                {CONTACTS.map((c) => (
+                  <a key={c.key} href={`tel:${c.number}`} className="rs-contact">
+                    <span>{tr(c.label)}</span><b>{c.number}</b>
+                  </a>
+                ))}
+              </div>
+              <p className="rs-note">{tr(T.contactsNote)}</p>
+            </div>
+          </aside>
+
+          <div className="rs-mapcol">
+            <div className="rs-mapwrap">
+              <div ref={mapEl} className="rs-map" />
+              <div className="rs-legend">
+                <div className="rs-legend-row">
+                  {[...CLASSES, NODATA].map((c) => <span key={c.key}><i style={{ background: c.color }} />{c.label}</span>)}
+                </div>
+                <div className="rs-legend-row">
+                  <span><i className="lg-amb" />{tr(T.mapLegendRoute)}</span>
+                  <span><i className="lg-sup" />{tr(T.mapLegendSupply)}</span>
+                  <span><i className="lg-closed" />{tr(T.closed)}</span>
+                  <span><b className="rs-key rs-key--h">H</b>Hospital</span>
+                  <span><b className="rs-key rs-key--s">S</b>Shelter</span>
+                  <span><b className="rs-key rs-key--b">B</b>Base</span>
+                </div>
+              </div>
+              <div className="rs-calc">{tr(T.recalc)} {calc.ms.toFixed(1)} ms</div>
+            </div>
           </div>
         </section>
 
-        {/* DATA */}
-        <section className="fx-section" id="data">
-          <p className="fx-eyebrow">{t.data.eyebrow}</p>
-          <h2>{t.data.h2}</h2>
-          <div className="fx-table">
-            <div className="fx-tr fx-th">{t.data.head.map((h) => <span key={h}>{h}</span>)}</div>
-            {t.data.rows.map((r, i) => (
-              <div className="fx-tr" key={i}><span>{r[0]}</span><span>{SOURCE_NAMES[i]}</span><span>{r[1]}</span></div>
-            ))}
+        {/* RESCUE REQUESTS */}
+        <section className="rs-card rs-wide">
+          <h3>{tr(T.incTitle)}</h3>
+          <p className="rs-note">{tr(T.incNote)}</p>
+          {calc.inc.length === 0 ? <p className="rs-empty">{tr(T.incEmpty)}</p> : (
+            <div className="rs-table-wrap">
+              <table className="rs-table">
+                <thead><tr><th>{tr(T.colPoint)}</th><th>{tr(T.colHospital)}</th><th>{tr(T.colTime)}</th><th>{tr(T.colDist)}</th><th>{tr(T.colConf)}</th><th /></tr></thead>
+                <tbody>
+                  {calc.inc.map((p, i) => (
+                    <tr key={p.id} className={selectedInc === p.id ? "is-sel" : ""} onClick={() => setSelectedInc(selectedInc === p.id ? null : p.id)}>
+                      <td><span className="rs-num">{i + 1}</span></td>
+                      <td>{p.safe ? hospitalName(p.safe.target) : <em>{tr(T.noRoute)}</em>}</td>
+                      <td>{p.safe ? fmtMin(p.safe.time) : "—"}</td>
+                      <td>{p.safe ? fmtKm(p.safe.distance) : "—"}</td>
+                      <td><span className={`rs-conf rs-conf--${p.conf.level}`}>{lvl(p.conf.level)}</span></td>
+                      <td>
+                        <button className="rs-btn rs-btn--ghost rs-btn--sm" onClick={(e) => { e.stopPropagation(); setIncidents((l) => l.filter((x) => x.id !== p.id)); if (selectedInc === p.id) setSelectedInc(null); }}>{tr(T.remove)}</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {selIncData && (
+            <div className="rs-why">
+              <b>{tr(T.whyTitle)}</b>
+              <ul>{selIncData.conf.reasons.map((r) => <li key={r}>{r}</li>)}</ul>
+            </div>
+          )}
+        </section>
+
+        {/* RELIEF CAMPS + SUPPLY */}
+        <section className="rs-card rs-wide">
+          <h3>{tr(T.campTitle)}</h3>
+          <p className="rs-note">{tr(T.campNote)} {tr(T.vehicleNote)}</p>
+          <label className="rs-units">
+            <span>{tr(T.units)}</span>
+            <input type="number" min="0" max="100000" step="50" value={units} onChange={(e) => setUnits(e.target.value)} />
+          </label>
+          <div className="rs-table-wrap">
+            <table className="rs-table">
+              <thead><tr><th>{tr(T.colCamp)}</th><th>{tr(T.colCap)}</th><th>{tr(T.colEta)}</th><th>{tr(T.colDist)}</th><th>{tr(T.colConf)}</th><th>{tr(T.colUnits)}</th><th /></tr></thead>
+              <tbody>
+                {calc.camps.map((c) => (
+                  <tr key={c.id} className={selectedCamp === c.id ? "is-sel" : ""}>
+                    <td>{c.name}</td>
+                    <td>{c.capacity}</td>
+                    <td>{c.r ? fmtMin(c.r.time) : <em>{tr(T.noRoute)}</em>}</td>
+                    <td>{c.r ? fmtKm(c.r.distance) : "—"}</td>
+                    <td><span className={`rs-conf rs-conf--${c.conf.level}`}>{c.r ? lvl(c.conf.level) : "—"}</span></td>
+                    <td><b>{c.r ? alloc[c.id] ?? 0 : 0}</b></td>
+                    <td>
+                      <button className="rs-btn rs-btn--ghost rs-btn--sm" disabled={!c.r} onClick={() => setSelectedCamp(selectedCamp === c.id ? null : c.id)}>
+                        {selectedCamp === c.id ? tr(T.hideRoute) : tr(T.showRoute)}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div className="fx-limits">
-            <strong>{t.data.limitsTitle}</strong>
-            <p>{t.data.limits}</p>
+          <button className="rs-btn rs-btn--primary" onClick={downloadCsv}>⬇ {tr(T.download)}</button>
+        </section>
+
+        {/* STATISTICS + ROAD DETAILS */}
+        <section className="rs-two">
+          <div className="rs-card">
+            <h3>{tr(T.statsTitle)}</h3>
+            <div className="rs-stats">
+              <div><b>{stats.avg != null ? fmtMin(stats.avg) : "—"}</b><span>{tr(T.sAvgEta)}</span></div>
+              <div><b>{stats.max != null ? fmtMin(stats.max) : "—"}</b><span>{tr(T.sMaxEta)}</span></div>
+              <div><b>{fmtKm(stats.avoided)}</b><span>{tr(T.sAvoid)}</span></div>
+              <div><b>+{stats.extra.toFixed(1)} min</b><span>{tr(T.sExtra)}</span></div>
+              <div><b>{stats.noRoute}</b><span>{tr(T.sNoRoute)}</span></div>
+              <div><b>{calc.ms.toFixed(1)} ms</b><span>{tr(T.sCalc)}</span></div>
+            </div>
+            <p className="rs-note">{tr(T.statNote)}</p>
+          </div>
+
+          <div className="rs-card">
+            <h3>{tr(T.roadTitle)}{sel ? ` · ${sel.id}` : ""}</h3>
+            {sel ? (
+              <div className="rs-road">
+                <div className="rs-road-head">
+                  <b>{sel.name}</b>
+                  <span className="rs-pill" style={{ background: edgeClassInfo(sel, risks[selIdx]).color }}>
+                    {closed.has(sel.id) ? tr(T.closed) : edgeClassInfo(sel, risks[selIdx]).label}
+                  </span>
+                </div>
+                <div className="rs-note">{tr(T.risk)} {risks[selIdx].toFixed(2)} · {fmtKm(sel.length)}</div>
+                <ul>{explainEdge(sel, intensity, rain24).map((x) => <li key={x}>{x}</li>)}</ul>
+                <button className="rs-btn rs-btn--ghost" onClick={() => toggleClosed(sel.id)}>{closed.has(sel.id) ? tr(T.reopenRoad) : tr(T.closeRoad)}</button>
+              </div>
+            ) : <p className="rs-empty">{tr(T.roadEmpty)}</p>}
           </div>
         </section>
 
-        {/* CTA */}
-        <section className="fx-cta">
-          <h2>{t.cta.h2}</h2>
-          <p>{t.cta.p}</p>
-          <div className="fx-cta-row fx-center">
-            <a href="/dashboard" className="fx-btn fx-btn-primary">{t.cta.b1}</a>
-            <a href="/" className="fx-btn fx-btn-ghost">{t.cta.b2}</a>
-          </div>
+        {/* ROADMAP */}
+        <section className="rs-card rs-wide">
+          <h3>{tr(T.roadmapTitle)}</h3>
+          <p className="rs-note">{tr(T.roadmapNote)}</p>
+          <ul className="rs-roadmap">{ROADMAP.map((r) => <li key={r.en}>{tr(r)}</li>)}</ul>
         </section>
 
-        {/* FOOTER */}
-        <footer className="fx-footer" id="about">
-          <svg className="fx-wave" viewBox="0 0 1440 70" preserveAspectRatio="none" aria-hidden="true">
-            <path className="fx-wave-a" d="M0 35 Q180 5 360 35 T720 35 T1080 35 T1440 35 T1800 35 T2160 35 T2520 35 T2880 35 V70 H0 Z" />
-            <path className="fx-wave-b" d="M0 45 Q180 20 360 45 T720 45 T1080 45 T1440 45 T1800 45 T2160 45 T2520 45 T2880 45 V70 H0 Z" />
-          </svg>
-          <div className="fx-footer-inner">
-            <div className="fx-footer-brand">
-              <Brand />
-              <p>{t.footer.blurb}</p>
-              <span className="fx-footer-chip"><span className="fx-dot fx-dot-replay" />{t.footer.chip}</span>
-            </div>
-            <div className="fx-footer-col">
-              <h4>{t.footer.explore}</h4>
-              <a href="#all">{t.footer.all}</a>
-              <a href="#engine">{t.footer.how}</a>
-              <a href="#data">{t.footer.dataSrc}</a>
-            </div>
-            <div className="fx-footer-col">
-              <h4>{t.footer.app}</h4>
-              <a href="/">{t.footer.home}</a>
-              <a href="/dashboard">{t.footer.dash}</a>
-              <a href="/route-planner">{t.footer.planner}</a>
-            </div>
-            <div className="fx-footer-col">
-              <h4>{t.footer.open}</h4>
-              <a href="https://www.openstreetmap.org" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>
-              <a href="https://open-meteo.com" target="_blank" rel="noopener noreferrer">Open-Meteo</a>
-              <a href="https://bipadportal.gov.np" target="_blank" rel="noopener noreferrer">NDRRMA · BIPAD</a>
-            </div>
-          </div>
-          <div className="fx-footer-bottom">
-            <span>{t.footer.copy}</span>
-            <span className="fx-muted">{t.footer.disclaimer}</span>
-            <a href="#live" className="fx-top">{t.footer.top}</a>
-          </div>
-        </footer>
-      </div>
-    </LangCtx.Provider>
-    </LogoCtx.Provider>
+        <div className="rs-limits">{tr(T.limits)} {tr(T.limitsEngine)}</div>
+      </main>
+    </div>
   );
 }
