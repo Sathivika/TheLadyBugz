@@ -196,6 +196,7 @@ def status(f):  # is this shelter itself usable right now? (an earthquake open s
     if k >= 3: return dict(st="unsafe", why=f"Roads around it are {CN[k].lower()} flood risk", risk=mx, cls=k)
     if f.get("fp") and wet >= .5: return dict(st="unsafe", why="Riverbank site: not usable in heavy rain", risk=mx, cls=k)
     if k == 2 or (f.get("fp") and wet >= .25): return dict(st="watch", why="Riverbank site: check before sending people" if f.get("fp") else "Moderate risk around it", risk=mx, cls=k)
+    if k < 0: return dict(st="watch", why="No road data around it: verify before sending people", risk=mx, cls=k)
     return dict(st="safe", why="Low flood risk around it" if k >= 0 else "No terrain data nearby", risk=mx, cls=k)
 
 
