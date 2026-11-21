@@ -171,7 +171,7 @@
 }
 
 /* ---------- stats + road details ---------- */
-.rs-two { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
+.rs-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
 .rs-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .rs-stats div { padding: 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--border); }
 .rs-stats b { display: block; font-family: var(--font-display); font-size: 26px; font-weight: 600; color: var(--accent); }
@@ -201,4 +201,71 @@
   .rs-map { height: 480px; }
   .rs-card { padding: 18px; }
   .rs-contacts { grid-template-columns: 1fr 1fr; }
+}
+
+/* ======================================================================
+   Five Respond pages: tabs, pie charts, camp cards
+   ====================================================================== */
+
+/* ---------- page tabs ---------- */
+.rs-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.rs-tabs a {
+  padding: 9px 18px; border-radius: 999px; font-size: 14px; color: var(--muted);
+  border: 1px solid var(--border); background: rgba(255, 255, 255, .04);
+  transition: color .2s, background .2s, border-color .2s;
+}
+.rs-tabs a:hover { color: var(--text); border-color: rgba(160, 220, 215, .4); }
+.rs-tabs a.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+
+/* ---------- pie chart ---------- */
+.rs-pie-wrap { display: grid; gap: 12px; }
+.rs-pie { width: 100%; max-width: 720px; height: auto; margin: 0 auto; display: block; overflow: visible; }
+.rs-slice { cursor: pointer; outline: none; transition: transform .18s ease; }
+.rs-slice path, .rs-slice circle { stroke: #0b2833; stroke-width: 2px; transition: filter .18s; }
+.rs-slice:hover path, .rs-slice:hover circle, .rs-slice.on path, .rs-slice.on circle { filter: brightness(1.12); }
+.rs-slice:focus-visible path, .rs-slice:focus-visible circle { stroke: #ffffff; }
+.rs-slice-pct { fill: #071c25; font: 700 17px var(--font-body); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.rs-pie-leader { fill: none; stroke: rgba(232, 241, 242, .4); stroke-width: 1.2; }
+.rs-pie-name { fill: var(--text); font: 500 15px var(--font-body); }
+.rs-pie-val { fill: var(--muted); font: 400 13.5px var(--font-body); }
+.rs-pie-detail { text-align: center; color: var(--muted); font-size: 14px; min-height: 22px; margin: 0; }
+.rs-pie-legend { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 6px 16px; }
+.rs-pie-legend li {
+  display: grid; grid-template-columns: 12px 1fr auto auto; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 10px; border: 1px solid transparent; font-size: 14px; color: var(--text); cursor: pointer;
+}
+.rs-pie-legend li.on { border-color: var(--border); background: rgba(255, 255, 255, .06); }
+.rs-pie-legend li.zero { opacity: .55; cursor: default; }
+.rs-pie-legend i { width: 12px; height: 12px; border-radius: 3px; display: block; }
+.rs-pie-legend span { text-align: left; }
+.rs-pie-legend b { font-weight: 600; }
+.rs-pie-legend em { font-style: normal; color: var(--muted); min-width: 44px; text-align: right; }
+
+/* ---------- small helpers used by the new pages ---------- */
+.rs-row--inline { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin-bottom: 6px; }
+.rs-scroll { max-height: 340px; overflow: auto; }
+.rs-dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 10px; vertical-align: middle; }
+.rs-num--rank { background: var(--accent); color: var(--accent-ink); }
+.rs-table td .rs-pill { color: #071c25; }
+
+/* ---------- relief camp cards (Shelters & Hospitals) ---------- */
+.rs-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; margin: 14px 0 4px; }
+.rs-camp {
+  display: grid; gap: 12px; padding: 16px 18px; border-radius: 16px;
+  background: rgba(255, 255, 255, .04); border: 1px solid var(--border); transition: border-color .2s, background .2s;
+}
+.rs-camp.is-sel { border-color: var(--accent); background: rgba(159, 222, 214, .07); }
+.rs-camp { text-align: left; }
+.rs-camp-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
+.rs-camp h4 { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 600; font-size: 22px; line-height: 1.2; margin: 0; }
+.rs-camp h4 i { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.rs-camp dl { display: grid; gap: 6px; margin: 0; }
+.rs-camp dl div { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; padding-bottom: 6px; border-bottom: 1px dashed var(--border); }
+.rs-camp dt { color: var(--muted); }
+.rs-camp dd { margin: 0; font-weight: 600; color: var(--text); }
+
+@media (max-width: 700px) {
+  /* on a phone the text inside the SVG gets too small: the legend list below carries names and numbers */
+  .rs-pie-lab { display: none; }
+  .rs-tabs a { padding: 8px 14px; font-size: 13px; }
 }
