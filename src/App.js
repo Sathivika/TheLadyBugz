@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./App.css";
 import Home from "./Components/Home";
 import Dashboard from "./Components/Dashboard";
@@ -18,8 +18,14 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/Features" element={<Features />} />
           <Route path="/About" element={<About />} />
-          <Route path="/Respond" element={<Respond /> } />
+          <Route path="/Respond" element={<Respond view="plan" />} />
+          <Route path="/closures" element={<Respond view="closures" />} />
+          <Route path="/shelters" element={<Respond view="shelters" />} />
+          <Route path="/ambulance" element={<Respond view="ambulance" />} />
+          <Route path="/chokepoints" element={<Respond view="chokepoints" />} />
           <Route path="/Alert" element ={<Alert />} />
+          {/* any other address (e.g. old footer links) goes home instead of a blank white page */}
+          <Route path="*" element={<Navigate to="/" replace />} />
 
 
         </Routes>
