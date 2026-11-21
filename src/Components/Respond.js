@@ -7,7 +7,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import "./Home.css";
 import "./Respond.css";
 import setuLogo from "./Setu.jpg";
 import {
@@ -187,34 +186,7 @@ const T = {
     ne: "बाढीले सञ्जाललाई सबैभन्दा बढी असर गर्ने दश सडकको क्रम: व्यस्त र बाढी-प्रवण सडक। डेमो सञ्जालका लागि क्रम स्थिर छ। जोखिमको आँकडा तपाईंले तोकेको वर्षासँगै बदलिन्छ।",
   },
 
-  // ---- pie charts ----
-  chRiskTitle: { en: "Roads by flood-risk class", hi: "बाढ़-जोखिम वर्ग के अनुसार सड़कें", ne: "बाढी-जोखिम वर्ग अनुसार सडक" },
-  chRiskNote: { en: "Every road in the demo network at the current rainfall. Colours match the map.", hi: "मौजूदा बारिश पर डेमो नेटवर्क की हर सड़क। रंग नक्शे से मेल खाते हैं।", ne: "हालको वर्षामा डेमो सञ्जालका हरेक सडक। रङ नक्सासँग मेल खान्छन्।" },
-  chSupplyTitle: { en: "Supply units by relief camp", hi: "राहत शिविर के अनुसार आपूर्ति इकाइयाँ", ne: "राहत शिविर अनुसार आपूर्ति इकाई" },
-  chSupplyNote: { en: "Capacity-based split (demo rule) among reachable camps.", hi: "पहुँच योग्य शिविरों में क्षमता-आधारित बँटवारा (डेमो नियम)।", ne: "पुग्न सकिने शिविरबीच क्षमतामा आधारित बाँडफाँड (डेमो नियम)।" },
-  chStatusTitle: { en: "Road status", hi: "सड़क की स्थिति", ne: "सडकको अवस्था" },
-  chStatusNote: { en: "Closed roads are the ones you closed on the map.", hi: "बंद सड़कें वे हैं जिन्हें आपने नक्शे पर बंद किया।", ne: "बन्द सडक तपाईंले नक्सामा बन्द गरेका हुन्।" },
-  chCapTitle: { en: "Relief camp capacity", hi: "राहत शिविर की क्षमता", ne: "राहत शिविरको क्षमता" },
-  chCapNote: { en: "Demo capacities, not surveyed figures.", hi: "डेमो क्षमताएँ, सर्वे किए आँकड़े नहीं।", ne: "डेमो क्षमता, सर्वेक्षण गरिएका तथ्यांक होइन।" },
-  chHospTitle: { en: "Rescue points by hospital", hi: "अस्पताल के अनुसार बचाव बिंदु", ne: "अस्पताल अनुसार उद्धार बिन्दु" },
-  chHospNote: { en: "Where each rescue point is sent at the current rainfall.", hi: "मौजूदा बारिश पर हर बचाव बिंदु कहाँ भेजा जाता है।", ne: "हालको वर्षामा हरेक उद्धार बिन्दु कहाँ पठाइन्छ।" },
-  chChokeTitle: { en: "Chokepoints by risk class", hi: "जोखिम वर्ग के अनुसार अवरोध", ne: "जोखिम वर्ग अनुसार अवरोध" },
-  chChokeNote: { en: "Risk class of the ten ranked roads at the current rainfall.", hi: "मौजूदा बारिश पर दस क्रमबद्ध सड़कों का जोखिम वर्ग।", ne: "हालको वर्षामा दश क्रमबद्ध सडकको जोखिम वर्ग।" },
-  uRoads: { en: "roads", hi: "सड़कें", ne: "सडक" },
-  uUnits: { en: "units", hi: "इकाइयाँ", ne: "इकाई" },
   uPeople: { en: "people", hi: "लोग", ne: "मानिस" },
-  uPoints: { en: "points", hi: "बिंदु", ne: "बिन्दु" },
-  uRoad: { en: "road", hi: "सड़क", ne: "सडक" },
-  uUnit: { en: "unit", hi: "इकाई", ne: "इकाई" },
-  uPerson: { en: "person", hi: "व्यक्ति", ne: "व्यक्ति" },
-  uPoint: { en: "point", hi: "बिंदु", ne: "बिन्दु" },
-  pieTotal: { en: "Total", hi: "कुल", ne: "जम्मा" },
-  pieHint: { en: "Click a slice or a row to highlight it.", hi: "किसी हिस्से या पंक्ति पर क्लिक करके उसे उभारें।", ne: "कुनै भाग वा पङ्क्तिमा क्लिक गरेर उजागर गर्नुहोस्।" },
-  pieEmpty: { en: "Nothing to chart yet.", hi: "अभी चार्ट के लिए कुछ नहीं।", ne: "अहिले चार्टका लागि केही छैन।" },
-  stClosed: { en: "Closed by you", hi: "आपने बंद किया", ne: "तपाईंले बन्द गर्नुभयो" },
-  stHigh: { en: "Open, high risk or worse", hi: "खुली, उच्च जोखिम या अधिक", ne: "खुला, उच्च जोखिम वा बढी" },
-  stLow: { en: "Open, lower risk", hi: "खुली, कम जोखिम", ne: "खुला, कम जोखिम" },
-  stNoData: { en: "No data", hi: "डेटा नहीं", ne: "डेटा छैन" },
 
   // ---- road closures page ----
   colRoad: { en: "Road", hi: "सड़क", ne: "सडक" },
@@ -241,6 +213,37 @@ const T = {
   ckTitle: { en: "Top 10 chokepoints", hi: "शीर्ष 10 अवरोध", ne: "शीर्ष १० अवरोध" },
   ckNote: { en: "Ranked by how important the road is to the network and how flood-prone it is. Click a row to see it on the map.", hi: "सड़क नेटवर्क के लिए कितनी ज़रूरी है और कितनी बाढ़-प्रवण है, इस आधार पर क्रम। नक्शे पर देखने के लिए पंक्ति पर क्लिक करें।", ne: "सडक सञ्जालका लागि कति महत्त्वपूर्ण छ र कति बाढी-प्रवण छ भन्ने आधारमा क्रम। नक्सामा हेर्न पङ्क्तिमा क्लिक गर्नुहोस्।" },
   downloadChoke: { en: "Download chokepoints (CSV)", hi: "अवरोध डाउनलोड करें (CSV)", ne: "अवरोध डाउनलोड गर्नुहोस् (CSV)" },
+  // ---- guided step-by-step flow ----
+  stepWord: { en: "Step", hi: "चरण", ne: "चरण" },
+  stepsLabel: { en: "Response steps", hi: "प्रतिक्रिया के चरण", ne: "प्रतिक्रियाका चरण" },
+  s1Name: { en: "Situation", hi: "स्थिति", ne: "अवस्था" },
+  s2Name: { en: "Roads & points", hi: "सड़क व बिंदु", ne: "सडक र बिन्दु" },
+  s3Name: { en: "Ambulances", hi: "एम्बुलेंस", ne: "एम्बुलेन्स" },
+  s4Name: { en: "Supplies", hi: "आपूर्ति", ne: "आपूर्ति" },
+  s5Name: { en: "Review", hi: "समीक्षा", ne: "समीक्षा" },
+  s1Title: { en: "Set the rain", hi: "बारिश तय करें", ne: "वर्षा तय गर्नुहोस्" },
+  s1Sub: { en: "Choose how heavy the rain is. SETU colours every road by flood risk.", hi: "बारिश कितनी तेज़ है, चुनें। SETU हर सड़क को बाढ़ जोखिम के अनुसार रंग देता है।", ne: "वर्षा कति कडा छ छान्नुहोस्। SETU ले हरेक सडकलाई बाढी जोखिमअनुसार रङ दिन्छ।" },
+  s2Title: { en: "Close flooded roads, mark rescue points", hi: "डूबी सड़कें बंद करें, बचाव बिंदु रखें", ne: "डुबानका सडक बन्द गर्नुहोस्, उद्धार बिन्दु राख्नुहोस्" },
+  s2Sub: { en: "Tap a road on the map to close or reopen it. Add a rescue point wherever someone needs an ambulance.", hi: "सड़क को बंद या दोबारा खोलने के लिए नक्शे पर उस पर क्लिक करें। जहाँ एम्बुलेंस चाहिए वहाँ बचाव बिंदु जोड़ें।", ne: "सडक बन्द वा फेरि खोल्न नक्सामा त्यसमा क्लिक गर्नुहोस्। एम्बुलेन्स चाहिने ठाउँमा उद्धार बिन्दु थप्नुहोस्।" },
+  s3Title: { en: "Send ambulances", hi: "एम्बुलेंस भेजें", ne: "एम्बुलेन्स पठाउनुहोस्" },
+  s3Sub: { en: "Each rescue point gets the safest passable route to the nearest hospital.", hi: "हर बचाव बिंदु को निकटतम अस्पताल तक सबसे सुरक्षित पार करने योग्य मार्ग मिलता है।", ne: "हरेक उद्धार बिन्दुलाई नजिकको अस्पतालसम्म सबैभन्दा सुरक्षित पार गर्न मिल्ने मार्ग दिइन्छ।" },
+  s4Title: { en: "Supply the relief camps", hi: "राहत शिविरों तक आपूर्ति", ne: "राहत शिविरमा आपूर्ति" },
+  s4Sub: { en: "Supplies leave the base and are split among the camps SETU can reach.", hi: "आपूर्ति बेस से निकलती है और SETU जिन शिविरों तक पहुँच सकता है उनमें बाँटी जाती है।", ne: "आपूर्ति बेसबाट निस्कन्छ र SETU ले पुग्न सक्ने शिविरबीच बाँडिन्छ।" },
+  s5Title: { en: "Review and download", hi: "जाँचें और डाउनलोड करें", ne: "जाँच र डाउनलोड" },
+  s5Sub: { en: "Check the roads everything depends on, then download the plan.", hi: "वे सड़कें देखें जिन पर सब निर्भर है, फिर योजना डाउनलोड करें।", ne: "सबै कुरा निर्भर हुने सडक हेर्नुहोस्, त्यसपछि योजना डाउनलोड गर्नुहोस्।" },
+  back: { en: "Back", hi: "पीछे", ne: "पछाडि" },
+  next: { en: "Next", hi: "आगे", ne: "अगाडि" },
+  sosBtn: { en: "Emergency numbers", hi: "आपातकालीन नंबर", ne: "आपतकालीन नम्बर" },
+  change: { en: "change", hi: "बदलें", ne: "बदल्नुहोस्" },
+  moreNums: { en: "More numbers and notes", hi: "और आँकड़े और टिप्पणियाँ", ne: "थप तथ्यांक र टिप्पणी" },
+  showAll: { en: "Show all 10", hi: "सभी 10 दिखाएँ", ne: "सबै १० देखाउनुहोस्" },
+  showTop: { en: "Show top 5 only", hi: "केवल शीर्ष 5 दिखाएँ", ne: "शीर्ष ५ मात्र देखाउनुहोस्" },
+  addMore: { en: "Add or change rescue points", hi: "बचाव बिंदु जोड़ें या बदलें", ne: "उद्धार बिन्दु थप्नुहोस् वा बदल्नुहोस्" },
+  hintClose: { en: "Tap a road on the map to close or reopen it.", hi: "नक्शे पर सड़क पर क्लिक करके उसे बंद या दोबारा खोलें।", ne: "नक्सामा सडकमा क्लिक गरेर बन्द वा फेरि खोल्नुहोस्।" },
+  hintAddOn: { en: "Add rescue point is ON. Tap anywhere on the map to place one.", hi: "बचाव बिंदु जोड़ना चालू है। रखने के लिए नक्शे पर कहीं भी क्लिक करें।", ne: "उद्धार बिन्दु थप्ने चालू छ। राख्न नक्सामा जहाँसुकै क्लिक गर्नुहोस्।" },
+  hintBaseOn: { en: "Set base is ON. Tap the map where supplies start from.", hi: "बेस तय करना चालू है। जहाँ से आपूर्ति निकलेगी वहाँ नक्शे पर क्लिक करें।", ne: "बेस तोक्ने चालू छ। आपूर्ति निस्कने ठाउँमा नक्सामा क्लिक गर्नुहोस्।" },
+  noPoints: { en: "No rescue points yet. Go back and add one.", hi: "अभी कोई बचाव बिंदु नहीं। पीछे जाकर जोड़ें।", ne: "अहिलेसम्म उद्धार बिन्दु छैन। पछाडि गएर थप्नुहोस्।" },
+  riskWord: { en: "risk", hi: "जोखिम", ne: "जोखिम" },
 };
 
 const ROADMAP = [
@@ -257,29 +260,18 @@ const ROBUST = true;
 
 const fmtKm = (m) => (m >= 1000 ? `${(m / 1000).toFixed(2)} km` : `${Math.round(m)} m`);
 const fmtMin = (t) => `${t.toFixed(1)} min`;
+const nb = (t) => t.replace(/ /g, "\u00a0"); // keep a number and its unit on one line
 
-// ---------- the five Respond pages (same names as the Home footer links) ----------
-const HERO = {
-  plan: { eyebrow: T.eyebrow, a: T.h1a, b: T.h1b, sub: T.sub },
-  closures: { eyebrow: T.clEyebrow, a: T.clH1a, b: T.clH1b, sub: T.clSub },
-  shelters: { eyebrow: T.shEyebrow, a: T.shH1a, b: T.shH1b, sub: T.shSub },
-  ambulance: { eyebrow: T.amEyebrow, a: T.amH1a, b: T.amH1b, sub: T.amSub },
-  chokepoints: { eyebrow: T.ckEyebrow, a: T.ckH1a, b: T.ckH1b, sub: T.ckSub },
-};
-const VIEWS = [
-  { key: "closures", path: "/closures", label: T.tabClosures },
-  { key: "shelters", path: "/shelters", label: T.tabShelters },
-  { key: "ambulance", path: "/ambulance", label: T.tabAmbulance },
-  { key: "chokepoints", path: "/chokepoints", label: T.tabChoke },
-  { key: "plan", path: "/Respond", label: T.tabPlan },
+// ---------- the guided flow: five steps (the old five pages map onto them) ----------
+const STEPS = [
+  { n: 1, name: T.s1Name, title: T.s1Title, sub: T.s1Sub },
+  { n: 2, name: T.s2Name, title: T.s2Title, sub: T.s2Sub },
+  { n: 3, name: T.s3Name, title: T.s3Title, sub: T.s3Sub },
+  { n: 4, name: T.s4Name, title: T.s4Title, sub: T.s4Sub },
+  { n: 5, name: T.s5Name, title: T.s5Title, sub: T.s5Sub },
 ];
-
-// Categorical colours for the pie charts: fixed order, checked with the palette validator
-// (dark surface). A camp or hospital keeps its colour whatever else is on screen.
-const SERIES = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#0ca30c"];
-const STATUS_COLORS = { closed: "#d03b3b", high: "#ec835a", low: "#0ca30c" };
-const campColor = Object.fromEntries(shelters.map((s, i) => [s.id, SERIES[i % SERIES.length]]));
-const hospColor = Object.fromEntries(hospitals.map((h, i) => [h.id, SERIES[i % SERIES.length]]));
+// old routes still work: each opens on the matching step
+const STEP_OF = { plan: 1, closures: 2, ambulance: 3, shelters: 4, chokepoints: 5 };
 
 // shortest distance (m) from a point to the demo river line (flat-earth approximation, fine at city scale)
 const distToRiverM = ([lat0, lon0]) => {
@@ -296,136 +288,6 @@ const distToRiverM = ([lat0, lon0]) => {
 };
 const riverDist = Object.fromEntries(shelters.map((s) => [s.id, distToRiverM(s.pos)]));
 
-const fmtPct = (p) => (p > 0 && p < 1 ? "<1%" : `${Math.round(p)}%`);
-
-// ---------- pie chart (pure SVG, no extra library) ----------
-// slices: [{ key, name, value, color }]. Hover or click a slice or a legend row to pull it out.
-function PieChart({ slices, unit, unitOne, totalLabel, hint, emptyText, label }) {
-  const [pin, setPin] = useState(null);
-  const [hov, setHov] = useState(null);
-  const active = hov ?? pin;
-  const u = (n) => (n === 1 && unitOne ? unitOne : unit);
-  const total = slices.reduce((s, x) => s + x.value, 0);
-  if (total <= 0) return <p className="rs-empty">{emptyText}</p>;
-
-  const W = 720, H = 330, cx = W / 2, cy = H / 2, R = 108;
-  const pt = (r, a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
-  let a = -Math.PI / 2;
-  const arcs = slices.filter((s) => s.value > 0).map((s) => {
-    const sweep = (s.value / total) * Math.PI * 2;
-    const arc = { ...s, a0: a, a1: a + sweep, mid: a + sweep / 2, pct: (s.value / total) * 100 };
-    a += sweep;
-    return arc;
-  });
-
-  // outside labels, pushed apart so they never overlap
-  const labelY = {};
-  ["r", "l"].forEach((side) => {
-    const items = arcs
-      .filter((s) => (Math.cos(s.mid) >= 0) === (side === "r"))
-      .map((s) => ({ s, y: cy + (R + 22) * Math.sin(s.mid) }))
-      .sort((p, q) => p.y - q.y);
-    for (let i = 1; i < items.length; i++) if (items[i].y - items[i - 1].y < 40) items[i].y = items[i - 1].y + 40;
-    const over = items.length ? items[items.length - 1].y - (H - 26) : 0;
-    if (over > 0) items.forEach((it) => { it.y -= over; });
-    items.forEach((it) => { labelY[it.s.key] = Math.max(24, it.y); });
-  });
-
-  const sel = slices.find((s) => s.key === active);
-  const toggle = (k) => setPin((p) => (p === k ? null : k));
-
-  return (
-    <div className="rs-pie-wrap">
-      <svg className="rs-pie" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label}>
-        {arcs.map((s) => {
-          const on = active === s.key;
-          const full = s.a1 - s.a0 >= Math.PI * 2 - 1e-6;
-          const [x0, y0] = pt(R, s.a0);
-          const [x1, y1] = pt(R, s.a1);
-          const [px, py] = pt(R * 0.62, s.mid);
-          const d = `M${cx},${cy} L${x0},${y0} A${R},${R} 0 ${s.a1 - s.a0 > Math.PI ? 1 : 0} 1 ${x1},${y1} Z`;
-          // only a clicked slice is pulled out; hover just brightens it (a moving slice under the cursor would flicker)
-          const shift = pin === s.key ? `translate(${Math.cos(s.mid) * 10}px, ${Math.sin(s.mid) * 10}px)` : "none";
-          return (
-            <g
-              key={s.key}
-              className={`rs-slice${on ? " on" : ""}`}
-              style={{ transform: shift }}
-              role="button"
-              tabIndex={0}
-              aria-label={`${s.name}: ${s.value} ${u(s.value)}, ${fmtPct(s.pct)}`}
-              onClick={() => toggle(s.key)}
-              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && toggle(s.key)}
-              onMouseEnter={() => setHov(s.key)}
-              onMouseLeave={() => setHov(null)}
-              onFocus={() => setHov(s.key)}
-              onBlur={() => setHov(null)}
-            >
-              <title>{`${s.name}: ${s.value} ${u(s.value)} (${fmtPct(s.pct)})`}</title>
-              {full ? <circle cx={cx} cy={cy} r={R} fill={s.color} /> : <path d={d} fill={s.color} />}
-              {s.pct >= 7 && <text x={px} y={py} className="rs-slice-pct">{fmtPct(s.pct)}</text>}
-            </g>
-          );
-        })}
-        {arcs.map((s) => {
-          const right = Math.cos(s.mid) >= 0;
-          const ly = labelY[s.key];
-          const [ex, ey] = pt(R + 3, s.mid);
-          const ox = cx + (right ? R + 34 : -(R + 34));
-          const tx = ox + (right ? 8 : -8);
-          return (
-            <g key={`l-${s.key}`} className="rs-pie-lab" aria-hidden="true">
-              <polyline className="rs-pie-leader" points={`${ex},${ey} ${ox},${ly} ${tx},${ly}`} />
-              <text x={tx + (right ? 4 : -4)} y={ly - 3} textAnchor={right ? "start" : "end"} className="rs-pie-name">{s.name}</text>
-              <text x={tx + (right ? 4 : -4)} y={ly + 15} textAnchor={right ? "start" : "end"} className="rs-pie-val">{s.value} {u(s.value)} · {fmtPct(s.pct)}</text>
-            </g>
-          );
-        })}
-      </svg>
-      <p className="rs-pie-detail" aria-live="polite">
-        {sel ? `${sel.name}: ${sel.value} ${u(sel.value)} · ${fmtPct((sel.value / total) * 100)}` : `${totalLabel}: ${total} ${u(total)} · ${hint}`}
-      </p>
-      <ul className="rs-pie-legend">
-        {slices.map((s) => (
-          <li
-            key={s.key}
-            className={`${active === s.key ? "on" : ""}${s.value === 0 ? " zero" : ""}`}
-            onClick={() => s.value > 0 && toggle(s.key)}
-            onMouseEnter={() => s.value > 0 && setHov(s.key)}
-            onMouseLeave={() => setHov(null)}
-          >
-            <i style={{ background: s.color }} />
-            <span>{s.name}</span>
-            <b>{s.value}</b>
-            <em>{fmtPct((s.value / total) * 100)}</em>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-// ---------- background (same look as Home) ----------
-const RIPPLES = [
-  { left: 12, top: 78, delay: 0 }, { left: 32, top: 88, delay: 1.6 }, { left: 55, top: 82, delay: 3.1 },
-  { left: 74, top: 90, delay: 0.8 }, { left: 88, top: 76, delay: 2.4 }, { left: 44, top: 70, delay: 4.2 },
-];
-function Background() {
-  return (
-    <div className="home-bg" aria-hidden="true">
-      <div className="home-bg-img" />
-      <div className="home-bg-overlay" />
-      <span className="bg-orb bg-orb-1" />
-      <span className="bg-orb bg-orb-2" />
-      <span className="bg-orb bg-orb-3" />
-      <div className="home-bg-rain" />
-      {RIPPLES.map((r, i) => (
-        <span key={i} className="bg-ripple" style={{ left: `${r.left}%`, top: `${r.top}%`, animationDelay: `${r.delay}s` }} />
-      ))}
-      <div className="home-bg-vignette" />
-    </div>
-  );
-}
 
 // ---------- page ----------
 export default function Respond({ view = "plan" }) {
@@ -436,7 +298,6 @@ export default function Respond({ view = "plan" }) {
   }, []);
   const setLang = (c) => { setLangState(c); try { localStorage.setItem("setu-lang", c); } catch { /* ignore */ } };
   const tr = (o) => (typeof o === "string" ? o : o[lang] ?? o.en);
-  const [menuOpen, setMenuOpen] = useState(false);
 
   // rain
   const [source, setSource] = useState("manual");
@@ -488,6 +349,13 @@ export default function Respond({ view = "plan" }) {
   const [selectedCamp, setSelectedCamp] = useState(null);
   const [units, setUnits] = useState(1000);
   const nextId = useRef(3);
+
+  // guided flow
+  const [step, setStep] = useState(STEP_OF[view] ?? 1);
+  const [sosOpen, setSosOpen] = useState(false);
+  const [allChokes, setAllChokes] = useState(false);
+  useEffect(() => { setStep(STEP_OF[view] ?? 1); }, [view]);
+  useEffect(() => { setTool("off"); }, [step]);
 
   const toggleClosed = useCallback((id) => {
     setClosed((prev) => {
@@ -569,7 +437,7 @@ export default function Respond({ view = "plan" }) {
   const map = useRef(null);
   const layers = useRef({});
   const handlers = useRef({});
-  handlers.current = { toggleClosed, setSelectedRoad, setSelectedInc, onMapClick, tool };
+  handlers.current = { toggleClosed, setSelectedRoad, setSelectedInc, onMapClick, tool, step };
 
   useEffect(() => {
     if (map.current || !mapEl.current) return undefined;
@@ -612,8 +480,11 @@ export default function Respond({ view = "plan" }) {
       line.bindTooltip(`${e.name} · ${isClosed ? "CLOSED" : info.label}`, { sticky: true, className: "rs-tip" });
       line.on("click", (ev) => {
         L.DomEvent.stopPropagation(ev);
-        handlers.current.toggleClosed(e.id);
-        handlers.current.setSelectedRoad(e.id);
+        const h = handlers.current;
+        if (h.tool !== "off") { h.onMapClick([ev.latlng.lat, ev.latlng.lng], h.tool); return; } // a tool is on: place the point here
+        if (h.step !== 2) return; // roads are only closed or reopened in step 2, so a stray tap elsewhere changes nothing
+        h.toggleClosed(e.id);
+        h.setSelectedRoad(e.id);
       });
       line.addTo(g);
     });
@@ -625,32 +496,44 @@ export default function Respond({ view = "plan" }) {
     if (!g || !mk) return;
     g.clearLayers(); mk.clearLayers();
 
-    calc.inc.forEach((p) => {
-      if (!p.safe) return;
-      const on = selectedInc === p.id;
-      L.polyline(p.safe.coords, { color: "#22d3ee", weight: on ? 16 : 12, opacity: on ? 0.3 : 0.14, interactive: false }).addTo(g);
-      L.polyline(p.safe.coords, { color: on ? "#a5f3fc" : "#22d3ee", weight: on ? 6 : 4, opacity: 1, interactive: false }).addTo(g);
-    });
+    const showAmb = step === 3;
+    const showInc = step === 2 || step === 3 || step === 5;
+    const showHosp = step >= 2;
+    const showShel = step >= 4;
+
+    if (showAmb) {
+      calc.inc.forEach((p) => {
+        if (!p.safe) return;
+        const on = selectedInc === p.id;
+        L.polyline(p.safe.coords, { color: "#22d3ee", weight: on ? 16 : 12, opacity: on ? 0.3 : 0.14, interactive: false }).addTo(g);
+        L.polyline(p.safe.coords, { color: on ? "#a5f3fc" : "#22d3ee", weight: on ? 6 : 4, opacity: 1, interactive: false }).addTo(g);
+      });
+    }
     const camp = calc.camps.find((c) => c.id === selectedCamp);
-    if (camp?.r) {
+    if (step === 4 && camp?.r) {
       L.polyline(camp.r.coords, { color: "#f5c451", weight: 5, opacity: 0.95, dashArray: "8 8", interactive: false }).addTo(g);
     }
 
     facilities.forEach((f) => {
+      if (f.type === "hospital" ? !showHosp : !showShel) return;
       L.marker(f.pos, {
         icon: L.divIcon({ className: "", html: `<div class="rs-pin rs-pin--${f.type}">${f.type === "hospital" ? "H" : "S"}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] }),
       }).bindTooltip(`${f.name}${f.capacity ? ` · cap ${f.capacity}` : ""}`, { className: "rs-tip" }).addTo(mk);
     });
-    calc.inc.forEach((p, i) => {
-      L.marker(net.nodes[p.node].pos, {
-        icon: L.divIcon({ className: "", html: `<div class="rs-pin rs-pin--incident${selectedInc === p.id ? " is-on" : ""}">${i + 1}</div>`, iconSize: [28, 28], iconAnchor: [14, 14] }),
-      }).on("click", () => handlers.current.setSelectedInc(p.id)).addTo(mk);
-    });
-    L.marker(net.nodes[base].pos, {
-      icon: L.divIcon({ className: "", html: `<div class="rs-pin rs-pin--base">B</div>`, iconSize: [28, 28], iconAnchor: [14, 14] }),
-      interactive: false,
-    }).addTo(mk);
-  }, [calc, selectedInc, selectedCamp, base]);
+    if (showInc) {
+      calc.inc.forEach((p, i) => {
+        L.marker(net.nodes[p.node].pos, {
+          icon: L.divIcon({ className: "", html: `<div class="rs-pin rs-pin--incident${selectedInc === p.id ? " is-on" : ""}">${i + 1}</div>`, iconSize: [28, 28], iconAnchor: [14, 14] }),
+        }).on("click", () => handlers.current.setSelectedInc(p.id)).addTo(mk);
+      });
+    }
+    if (step >= 4) {
+      L.marker(net.nodes[base].pos, {
+        icon: L.divIcon({ className: "", html: `<div class="rs-pin rs-pin--base">B</div>`, iconSize: [28, 28], iconAnchor: [14, 14] }),
+        interactive: false,
+      }).addTo(mk);
+    }
+  }, [calc, selectedInc, selectedCamp, base, step]);
 
   // crosshair cursor while a tool is on
   useEffect(() => {
@@ -699,34 +582,10 @@ export default function Respond({ view = "plan" }) {
 
   // ---------- extra data for the five Respond pages ----------
   const gridRef = useRef(null);
-  useEffect(() => { window.scrollTo(0, 0); }, [view]);
-
-  const riskCounts = useMemo(() => {
-    const c = [0, 0, 0, 0, 0];
-    let nd = 0;
-    net.edges.forEach((e, i) => { if (e.S == null) nd++; else c[riskClass(risks[i])]++; });
-    return { c, nd };
-  }, [risks]);
-
-  const statusCounts = useMemo(() => {
-    let closedN = 0, high = 0, low = 0, nd = 0;
-    net.edges.forEach((e, i) => {
-      if (closed.has(e.id)) closedN++;
-      else if (e.S == null) nd++;
-      else if (riskClass(risks[i]) >= 3) high++;
-      else low++;
-    });
-    return { closedN, high, low, nd };
-  }, [closed, risks]);
+  const stepTop = useRef(null);
+  const panelRef = useRef(null);
 
   const chokes = useMemo(() => chokepoints(net, intensity, rain24), [intensity, rain24]);
-  const chokeCounts = useMemo(() => {
-    const c = [0, 0, 0, 0, 0];
-    let nd = 0;
-    chokes.forEach((k) => { if (k.e.S == null) nd++; else c[riskClass(k.risk)]++; });
-    return { c, nd };
-  }, [chokes]);
-
   const closedRows = useMemo(
     () => net.edges.map((e, i) => ({ e, i })).filter(({ e }) => closed.has(e.id)),
     [closed],
@@ -739,46 +598,14 @@ export default function Respond({ view = "plan" }) {
 
   const totalCap = shelters.reduce((s, c) => s + (c.capacity || 0), 0);
 
-  // slices for the pie charts
-  const riskSlices = [
-    ...CLASSES.map((c, i) => ({ key: c.key, name: c.label, value: riskCounts.c[i], color: c.color })),
-    { key: "nodata", name: tr(T.stNoData), value: riskCounts.nd, color: NODATA.color },
-  ];
-  const chokeSlices = [
-    ...CLASSES.map((c, i) => ({ key: c.key, name: c.label, value: chokeCounts.c[i], color: c.color })),
-    { key: "nodata", name: tr(T.stNoData), value: chokeCounts.nd, color: NODATA.color },
-  ];
-  const statusSlices = [
-    { key: "closed", name: tr(T.stClosed), value: statusCounts.closedN, color: STATUS_COLORS.closed },
-    { key: "high", name: tr(T.stHigh), value: statusCounts.high, color: STATUS_COLORS.high },
-    { key: "low", name: tr(T.stLow), value: statusCounts.low, color: STATUS_COLORS.low },
-    { key: "nodata", name: tr(T.stNoData), value: statusCounts.nd, color: NODATA.color },
-  ];
-  const supplySlices = calc.camps.map((c) => ({ key: c.id, name: c.name, value: c.r ? alloc[c.id] ?? 0 : 0, color: campColor[c.id] }));
-  const capSlices = shelters.map((s) => ({ key: s.id, name: s.name, value: s.capacity || 0, color: campColor[s.id] }));
-  const hospSlices = [
-    ...hospLoad.map((h) => ({ key: h.id, name: h.name, value: h.count, color: hospColor[h.id] })),
-    { key: "noroute", name: tr(T.noRoute), value: stats.noRoute, color: NODATA.color },
-  ];
-
-  const pieCard = (title, note, slices, unit, unitOne) => (
-    <div className="rs-card">
-      <h3>{tr(title)}</h3>
-      <PieChart
-        slices={slices}
-        unit={tr(unit)}
-        unitOne={tr(unitOne)}
-        totalLabel={tr(T.pieTotal)}
-        hint={tr(T.pieHint)}
-        emptyText={tr(T.pieEmpty)}
-        label={tr(title)}
-      />
-      <p className="rs-note">{tr(note)}</p>
-    </div>
-  );
-
   // ---------- actions for the extra pages ----------
-  const scrollToMap = () => gridRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+  const isNarrow = () => typeof window !== "undefined" && window.innerWidth < 1024;
+  const scrollToMap = () => { if (isNarrow()) gridRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" }); };
+  const goStep = (n) => {
+    setStep(Math.max(1, Math.min(5, n)));
+    if (panelRef.current) panelRef.current.scrollTop = 0;
+    if (isNarrow()) stepTop.current?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+  };
   const showCampRoute = (id) => {
     const off = selectedCamp === id;
     setSelectedCamp(off ? null : id);
@@ -807,10 +634,11 @@ export default function Respond({ view = "plan" }) {
     ...chokes.map((k, n) => [n + 1, k.e.id, k.e.name, edgeClassInfo(k.e, k.risk).label, k.risk.toFixed(2), Math.round(k.e.length), closed.has(k.e.id) ? "yes" : "no"]),
   ]);
 
-  const hero = HERO[view] || HERO.plan;
-  const showContacts = view === "plan" || view === "shelters";
+  const cur = STEPS[step - 1];
+  const nextStep = STEPS[step] || null; // the step after this one (STEPS is 0-based)
+  const shownChokes = allChokes ? chokes : chokes.slice(0, 5);
 
-  // ---------- page pieces (re-used by the different pages) ----------
+  // ---------- page pieces ----------
   const unitsInput = (
     <label className="rs-units">
       <span>{tr(T.units)}</span>
@@ -818,90 +646,62 @@ export default function Respond({ view = "plan" }) {
     </label>
   );
 
-  const incSection = (
-    <section className="rs-card rs-wide">
-      <h3>{tr(T.incTitle)}</h3>
-      <p className="rs-note">{tr(T.incNote)}</p>
-      {calc.inc.length === 0 ? <p className="rs-empty">{tr(T.incEmpty)}</p> : (
-        <div className="rs-table-wrap">
-          <table className="rs-table">
-            <thead><tr><th>{tr(T.colPoint)}</th><th>{tr(T.colHospital)}</th><th>{tr(T.colTime)}</th><th>{tr(T.colDist)}</th><th>{tr(T.colConf)}</th><th /></tr></thead>
-            <tbody>
-              {calc.inc.map((p, i) => (
-                <tr key={p.id} className={selectedInc === p.id ? "is-sel" : ""} onClick={() => setSelectedInc(selectedInc === p.id ? null : p.id)}>
-                  <td><span className="rs-num">{i + 1}</span></td>
-                  <td>{p.safe ? hospitalName(p.safe.target) : <em>{tr(T.noRoute)}</em>}</td>
-                  <td>{p.safe ? fmtMin(p.safe.time) : "—"}</td>
-                  <td>{p.safe ? fmtKm(p.safe.distance) : "—"}</td>
-                  <td><span className={`rs-conf rs-conf--${p.conf.level}`}>{lvl(p.conf.level)}</span></td>
-                  <td>
-                    <button className="rs-btn rs-btn--ghost rs-btn--sm" onClick={(e) => { e.stopPropagation(); setIncidents((l) => l.filter((x) => x.id !== p.id)); if (selectedInc === p.id) setSelectedInc(null); }}>{tr(T.remove)}</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      {selIncData && (
-        <div className="rs-why">
-          <b>{tr(T.whyTitle)}</b>
-          <ul>{selIncData.conf.reasons.map((r) => <li key={r}>{r}</li>)}</ul>
-        </div>
-      )}
-    </section>
-  );
-
-  const campSection = (
-    <section className="rs-card rs-wide">
-      <h3>{tr(T.campTitle)}</h3>
-      <p className="rs-note">{tr(T.campNote)} {tr(T.vehicleNote)}</p>
-      {unitsInput}
-      <div className="rs-table-wrap">
-        <table className="rs-table">
-          <thead><tr><th>{tr(T.colCamp)}</th><th>{tr(T.colCap)}</th><th>{tr(T.colEta)}</th><th>{tr(T.colDist)}</th><th>{tr(T.colConf)}</th><th>{tr(T.colUnits)}</th><th /></tr></thead>
-          <tbody>
-            {calc.camps.map((c) => (
-              <tr key={c.id} className={selectedCamp === c.id ? "is-sel" : ""}>
-                <td>{c.name}</td>
-                <td>{c.capacity}</td>
-                <td>{c.r ? fmtMin(c.r.time) : <em>{tr(T.noRoute)}</em>}</td>
-                <td>{c.r ? fmtKm(c.r.distance) : "—"}</td>
-                <td><span className={`rs-conf rs-conf--${c.conf.level}`}>{c.r ? lvl(c.conf.level) : "—"}</span></td>
-                <td><b>{c.r ? alloc[c.id] ?? 0 : 0}</b></td>
-                <td>
-                  <button className="rs-btn rs-btn--ghost rs-btn--sm" disabled={!c.r} onClick={() => setSelectedCamp(selectedCamp === c.id ? null : c.id)}>
-                    {selectedCamp === c.id ? tr(T.hideRoute) : tr(T.showRoute)}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <button className="rs-btn rs-btn--primary" onClick={downloadCsv}>⬇ {tr(T.download)}</button>
-    </section>
-  );
-
-  const statsCard = (
-    <div className="rs-card">
-      <h3>{tr(T.statsTitle)}</h3>
-      <div className="rs-stats">
-        <div><b>{stats.avg != null ? fmtMin(stats.avg) : "—"}</b><span>{tr(T.sAvgEta)}</span></div>
-        <div><b>{stats.max != null ? fmtMin(stats.max) : "—"}</b><span>{tr(T.sMaxEta)}</span></div>
-        <div><b>{fmtKm(stats.avoided)}</b><span>{tr(T.sAvoid)}</span></div>
-        <div><b>+{stats.extra.toFixed(1)} min</b><span>{tr(T.sExtra)}</span></div>
-        <div><b>{stats.noRoute}</b><span>{tr(T.sNoRoute)}</span></div>
-        <div><b>{calc.ms.toFixed(1)} ms</b><span>{tr(T.sCalc)}</span></div>
-      </div>
-      <p className="rs-note">{tr(T.statNote)}</p>
+  const toolSeg = (items) => (
+    <div className={`rs-seg rs-seg--${items.length}`}>
+      {items.map(([k, l]) => (
+        <button key={k} className={tool === k ? "on" : ""} onClick={() => setTool(k)}>{tr(l)}</button>
+      ))}
     </div>
   );
 
+  // STEP 1: rain
+  const rainCard = (
+    <div className="rs-card">
+      <h3>{tr(T.rainTitle)}</h3>
+      <div className="rs-seg">
+        {[["live", T.live], ["replay", T.replayT], ["manual", T.manual]].map(([k, l]) => (
+          <button key={k} className={source === k ? "on" : ""} onClick={() => { setSource(k); setPlaying(false); }}>{tr(l)}</button>
+        ))}
+      </div>
+      {source === "live" && (
+        <button className="rs-btn rs-btn--ghost" onClick={fetchLive}>↻ {tr(T.refresh)}</button>
+      )}
+      {source === "replay" && (
+        <div className="rs-replay">
+          <button className="rs-play" onClick={() => { if (frame >= replay.length - 1) setFrame(0); setPlaying((p) => !p); }}>{playing ? "❚❚" : "▶"}</button>
+          <input type="range" min="0" max={replay.length - 1} value={frame} onChange={(e) => { setPlaying(false); setFrame(+e.target.value); }} />
+          <span>H{String(frame).padStart(2, "0")}</span>
+        </div>
+      )}
+      {source === "manual" && (
+        <>
+          <div className="rs-presets">
+            {Object.entries(PRESETS).map(([k, pr]) => (
+              <button key={k} className={manual.intensity === pr.intensity && manual.rain24 === pr.rain24 ? "on" : ""} onClick={() => setManual({ intensity: pr.intensity, rain24: pr.rain24 })}>{tr(T[k])}</button>
+            ))}
+          </div>
+          <label className="rs-slider">
+            <span>{tr(T.intensity)} <b>{manual.intensity} mm/h</b></span>
+            <input type="range" min="0" max="60" value={manual.intensity} onChange={(e) => setManual((m) => ({ ...m, intensity: +e.target.value }))} />
+          </label>
+          <label className="rs-slider">
+            <span>{tr(T.rain24)} <b>{manual.rain24} mm</b></span>
+            <input type="range" min="0" max="250" value={manual.rain24} onChange={(e) => setManual((m) => ({ ...m, rain24: +e.target.value }))} />
+          </label>
+        </>
+      )}
+      <p className="rs-note">
+        {intensity} mm/h · {rain24} mm · {(rainfallLoading(intensity, rain24) * 100).toFixed(0)}%
+        {sourceNote && <><br />{sourceNote}</>}
+      </p>
+    </div>
+  );
+
+  // STEP 2: close roads + rescue points
   const roadCard = (
     <div className="rs-card">
       <h3>{tr(T.roadTitle)}{sel ? ` · ${sel.id}` : ""}</h3>
-      {sel ? (
+      {sel && (
         <div className="rs-road">
           <div className="rs-road-head">
             <b>{sel.name}</b>
@@ -913,43 +713,98 @@ export default function Respond({ view = "plan" }) {
           <ul>{explainEdge(sel, intensity, rain24).map((x) => <li key={x}>{x}</li>)}</ul>
           <button className="rs-btn rs-btn--ghost" onClick={() => toggleClosed(sel.id)}>{closed.has(sel.id) ? tr(T.reopenRoad) : tr(T.closeRoad)}</button>
         </div>
-      ) : <p className="rs-empty">{tr(T.roadEmpty)}</p>}
+      )}
     </div>
   );
 
-  // Road Closures page: list of closed roads
-  const closedCard = (
+  const closeCard = (
     <div className="rs-card">
       <h3>{tr(T.kClosed)} · {closedRows.length}</h3>
+      <p className="rs-note">{tr(T.hintClose)}</p>
       <div className="rs-row rs-row--inline">
         <button className="rs-btn rs-btn--ghost" onClick={closeHighRisk} disabled={highCount === 0}>{tr(T.closeHigh)} ({highCount})</button>
         <button className="rs-btn rs-btn--ghost" onClick={() => { setClosed(new Set()); setSelectedRoad(null); }} disabled={!closed.size}>{tr(T.reopenAll)}</button>
       </div>
       {closedRows.length === 0 ? <p className="rs-empty">{tr(T.clNone)}</p> : (
-        <div className="rs-table-wrap rs-scroll">
-          <table className="rs-table">
-            <thead><tr><th>{tr(T.colRoad)}</th><th>{tr(T.colClass)}</th><th>{tr(T.colLen)}</th><th /></tr></thead>
-            <tbody>
-              {closedRows.map(({ e, i }) => (
-                <tr key={e.id} className={selectedRoad === e.id ? "is-sel" : ""} onClick={() => focusRoad(e)}>
-                  <td>{e.name}</td>
-                  <td><span className="rs-pill" style={{ background: edgeClassInfo(e, risks[i]).color }}>{edgeClassInfo(e, risks[i]).label}</span></td>
-                  <td>{fmtKm(e.length)}</td>
-                  <td><button className="rs-btn rs-btn--ghost rs-btn--sm" onClick={(ev) => { ev.stopPropagation(); toggleClosed(e.id); }}>{tr(T.reopen)}</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="rs-items rs-scroll">
+          {closedRows.map(({ e, i }) => (
+            <div key={e.id} className={`rs-item${selectedRoad === e.id ? " is-sel" : ""}`} onClick={() => focusRoad(e)}>
+              <div className="rs-item-main">
+                <b>{e.name}</b>
+                <span><i className="rs-swatch" style={{ background: edgeClassInfo(e, risks[i]).color }} />{edgeClassInfo(e, risks[i]).label} · {nb(fmtKm(e.length))}</span>
+              </div>
+              <button className="rs-btn rs-btn--ghost rs-btn--sm" onClick={(ev) => { ev.stopPropagation(); toggleClosed(e.id); }}>{tr(T.reopen)}</button>
+            </div>
+          ))}
         </div>
       )}
     </div>
   );
 
-  // Shelters & Hospitals page: camp cards + hospital table
-  const campCards = (
-    <section className="rs-card rs-wide">
+  const pointsCard = (
+    <div className="rs-card">
+      <h3>{tr(T.kInc)} · {incidents.length}</h3>
+      {toolSeg([["incident", T.toolIncident], ["off", T.toolOff]])}
+      {tool === "incident" && <p className="rs-note">{tr(T.hintAddOn)}</p>}
+      <button className="rs-btn rs-btn--ghost" onClick={resetPoints}>{tr(T.resetPoints)}</button>
+    </div>
+  );
+
+  // STEP 3: ambulances
+  const ambCard = (
+    <div className="rs-card">
+      <h3>{tr(T.incTitle)}</h3>
+      {calc.inc.length === 0 ? <p className="rs-empty">{tr(T.noPoints)}</p> : (
+        <div className="rs-items">
+          {calc.inc.map((p, i) => (
+            <div key={p.id} className={`rs-item${selectedInc === p.id ? " is-sel" : ""}`} onClick={() => setSelectedInc(selectedInc === p.id ? null : p.id)}>
+              <span className="rs-num">{i + 1}</span>
+              <div className="rs-item-main">
+                <b>{p.safe ? hospitalName(p.safe.target) : <em>{tr(T.noRoute)}</em>}</b>
+                <span>{p.safe ? `${fmtMin(p.safe.time)} · ${fmtKm(p.safe.distance)}` : "—"}</span>
+              </div>
+              <span className={`rs-conf rs-conf--${p.conf.level}`}>{lvl(p.conf.level)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {selIncData && (
+        <div className="rs-why">
+          <b>{tr(T.whyTitle)}</b>
+          <ul>{selIncData.conf.reasons.map((r) => <li key={r}>{r}</li>)}</ul>
+          <button className="rs-btn rs-btn--ghost rs-btn--sm" onClick={() => { setIncidents((l) => l.filter((x) => x.id !== selIncData.id)); setSelectedInc(null); }}>{tr(T.remove)}</button>
+        </div>
+      )}
+      <button className="rs-btn rs-btn--ghost" onClick={() => goStep(2)}>＋ {tr(T.addMore)}</button>
+    </div>
+  );
+
+  const ambStats = (
+    <>
+      <div className="rs-stats rs-stats--3">
+        <div><b>{stats.avg != null ? fmtMin(stats.avg) : "—"}</b><span>{tr(T.sAvgEta)}</span></div>
+        <div><b>{stats.max != null ? fmtMin(stats.max) : "—"}</b><span>{tr(T.sMaxEta)}</span></div>
+        <div><b>{stats.noRoute}</b><span>{tr(T.sNoRoute)}</span></div>
+      </div>
+      <details className="rs-more">
+        <summary>{tr(T.moreNums)}</summary>
+        <div className="rs-stats">
+          <div><b>{fmtKm(stats.avoided)}</b><span>{tr(T.sAvoid)}</span></div>
+          <div><b>+{stats.extra.toFixed(1)} min</b><span>{tr(T.sExtra)}</span></div>
+          <div><b>{calc.ms.toFixed(1)} ms</b><span>{tr(T.sCalc)}</span></div>
+        </div>
+        <p className="rs-note">{tr(T.incNote)}</p>
+        <p className="rs-note">{tr(T.statNote)}</p>
+      </details>
+    </>
+  );
+
+  // STEP 4: relief camps
+  const campCard = (
+    <div className="rs-card">
       <h3>{tr(T.shCampsTitle)}</h3>
-      <p className="rs-note">{tr(T.shCampsNote)} {tr(T.vehicleNote)}</p>
+      {toolSeg([["base", T.toolBase], ["off", T.toolOff]])}
+      {tool === "base" && <p className="rs-note">{tr(T.hintBaseOn)}</p>}
       {unitsInput}
       <div className="rs-cards">
         {calc.camps.map((c) => (
@@ -958,7 +813,7 @@ export default function Respond({ view = "plan" }) {
               <span className={`rs-conf rs-conf--${c.r ? c.conf.level : "red"}`}>{c.r ? lvl(c.conf.level) : tr(T.noRoute)}</span>
               <span>{fmtKm(riverDist[c.id])} {tr(T.fromRiver)}</span>
             </div>
-            <h4><i style={{ background: campColor[c.id] }} />{c.name}</h4>
+            <h4>{c.name}</h4>
             <dl>
               <div><dt>{tr(T.colCap)}</dt><dd>{c.capacity} {tr(T.uPeople)}</dd></div>
               <div><dt>{tr(T.colEta)}</dt><dd>{c.r ? fmtMin(c.r.time) : "—"}</dd></div>
@@ -971,175 +826,97 @@ export default function Respond({ view = "plan" }) {
           </article>
         ))}
       </div>
-    </section>
-  );
-
-  const hospCard = (
-    <div className="rs-card">
-      <h3>{tr(T.shHospTitle)}</h3>
-      <div className="rs-table-wrap">
-        <table className="rs-table">
-          <thead><tr><th>{tr(T.colHosp)}</th><th>{tr(T.colAssigned)}</th><th>{tr(T.colQuick)}</th></tr></thead>
-          <tbody>
-            {hospLoad.map((h) => (
-              <tr key={h.id}>
-                <td><i className="rs-dot" style={{ background: hospColor[h.id] }} />{h.name}</td>
-                <td><b>{h.count}</b></td>
-                <td>{h.best != null ? fmtMin(h.best) : "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="rs-note">{tr(T.shHospNote)}</p>
-      <p className="rs-note"><b>{tr(T.totalCap)}:</b> {totalCap} {tr(T.uPeople)} (demo)</p>
+      <details className="rs-more">
+        <summary>{tr(T.shHospTitle)}</summary>
+        <div className="rs-items">
+          {hospLoad.map((h) => (
+            <div key={h.id} className="rs-item">
+              <div className="rs-item-main">
+                <b>{h.name}</b>
+                <span>{tr(T.colAssigned)}: {h.count} · {tr(T.colQuick)}: {h.best != null ? fmtMin(h.best) : "—"}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="rs-note">{tr(T.shHospNote)}</p>
+        <p className="rs-note"><b>{tr(T.totalCap)}:</b> {totalCap} {tr(T.uPeople)} (demo)</p>
+        <p className="rs-note">{tr(T.campNote)} {tr(T.vehicleNote)}</p>
+      </details>
     </div>
   );
 
-  // Chokepoint Report page: ranked table
-  const chokeSection = (
-    <section className="rs-card rs-wide">
+  // STEP 5: review + export
+  const reviewCard = (
+    <div className="rs-card">
       <h3>{tr(T.ckTitle)}</h3>
       <p className="rs-note">{tr(T.ckNote)}</p>
-      <div className="rs-table-wrap">
-        <table className="rs-table">
-          <thead><tr><th>#</th><th>{tr(T.colRoad)}</th><th>{tr(T.colClass)}</th><th>{tr(T.colRisk)}</th><th>{tr(T.colLen)}</th><th /></tr></thead>
-          <tbody>
-            {chokes.map((k, n) => {
-              const info = edgeClassInfo(k.e, k.risk);
-              return (
-                <tr key={k.e.id} className={selectedRoad === k.e.id ? "is-sel" : ""} onClick={() => focusRoad(k.e)}>
-                  <td><span className="rs-num rs-num--rank">{n + 1}</span></td>
-                  <td>{k.e.name}</td>
-                  <td><span className="rs-pill" style={{ background: info.color }}>{closed.has(k.e.id) ? tr(T.closed) : info.label}</span></td>
-                  <td>{k.risk.toFixed(2)}</td>
-                  <td>{fmtKm(k.e.length)}</td>
-                  <td><button className="rs-btn rs-btn--ghost rs-btn--sm" onClick={(ev) => { ev.stopPropagation(); toggleClosed(k.e.id); }}>{closed.has(k.e.id) ? tr(T.reopenRoad) : tr(T.closeRoad)}</button></td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="rs-items">
+        {shownChokes.map((k, n) => {
+          const info = edgeClassInfo(k.e, k.risk);
+          return (
+            <div key={k.e.id} className={`rs-item${selectedRoad === k.e.id ? " is-sel" : ""}`} onClick={() => focusRoad(k.e)}>
+              <span className="rs-num rs-num--rank">{n + 1}</span>
+              <div className="rs-item-main">
+                <b>{k.e.name}</b>
+                <span><i className="rs-swatch" style={{ background: info.color }} />{closed.has(k.e.id) ? tr(T.closed) : info.label} · {tr(T.riskWord)}{"\u00a0"}{k.risk.toFixed(2)} · {nb(fmtKm(k.e.length))}</span>
+              </div>
+              <button className="rs-btn rs-btn--ghost rs-btn--sm" onClick={(ev) => { ev.stopPropagation(); toggleClosed(k.e.id); }}>{closed.has(k.e.id) ? tr(T.reopen) : tr(T.closeRoad)}</button>
+            </div>
+          );
+        })}
       </div>
-      <button className="rs-btn rs-btn--primary" onClick={downloadChokes}>⬇ {tr(T.downloadChoke)}</button>
-    </section>
+      <button className="rs-linkbtn" onClick={() => setAllChokes((v) => !v)}>{allChokes ? tr(T.showTop) : tr(T.showAll)}</button>
+    </div>
   );
 
-  return (
-    <div className={`home rs-page ${langClass}`} lang={lang}>
-      <Background />
+  const exportCard = (
+    <div className="rs-card">
+      <div className="rs-row">
+        <button className="rs-btn rs-btn--primary rs-btn--full" onClick={downloadCsv}>⬇ {tr(T.download)}</button>
+        <button className="rs-btn rs-btn--ghost" onClick={downloadChokes}>⬇ {tr(T.downloadChoke)}</button>
+      </div>
+      <details className="rs-more">
+        <summary>{tr(T.roadmapTitle)}</summary>
+        <p className="rs-note">{tr(T.roadmapNote)}</p>
+        <ul className="rs-roadmap">{ROADMAP.map((r) => <li key={r.en}>{tr(r)}</li>)}</ul>
+      </details>
+    </div>
+  );
 
-      {/* NAVBAR (same look as Home) */}
-      <header className="nav">
-        <Link to="/" className="nav-brand" aria-label="Setu home">
-          <span className="setu-mark" aria-hidden="true"><img src={setuLogo} alt="" /></span>
-          <span className="setu-word">
-            <span className="nav-name">Setu</span>
-            <span className="nav-sub">{tr(T.navSub)}</span>
+  // legend entries change with the step, so the map never shows more than it needs to
+  const legendExtra = [];
+  if (step === 2) legendExtra.push(<span key="c"><i className="lg-closed" />{tr(T.closed)}</span>);
+  if (step === 3) legendExtra.push(<span key="a"><i className="lg-amb" />{tr(T.mapLegendRoute)}</span>);
+  if (step === 4) legendExtra.push(<span key="s"><i className="lg-sup" />{tr(T.mapLegendSupply)}</span>, <span key="sh"><b className="rs-key rs-key--s">S</b>Shelter</span>, <span key="b"><b className="rs-key rs-key--b">B</b>Base</span>);
+  if (step >= 2) legendExtra.push(<span key="h"><b className="rs-key rs-key--h">H</b>Hospital</span>);
+
+  return (
+    <div className={`rs-dash ${langClass}`} lang={lang}>
+      {/* TOP BAR */}
+      <header className="rs-top">
+        <Link to="/" className="rs-brand" aria-label="Setu home">
+          <span className="rs-logo" aria-hidden="true"><img src={setuLogo} alt="" /></span>
+          <span>
+            <span className="rs-brand-name">Setu</span>
+            <span className="rs-brand-sub">{tr(T.navSub)}</span>
           </span>
         </Link>
-        <nav className={`nav-links ${menuOpen ? "open" : ""}`} onClick={() => setMenuOpen(false)}>
-          <Link to="/">{tr(T.navHome)}</Link>
-          <Link to="/Features">{tr(T.navFeatures)}</Link>
-          <Link to="/dashboard">{tr(T.navDashboard)}</Link>
-          <Link to="/About">{tr(T.navAbout)}</Link>
-        </nav>
-        <div className="nav-actions">
-          <div className="lang-toggle" role="group" aria-label="Language">
+        <div className="rs-top-right">
+          <nav className="rs-sitelinks" aria-label="Site">
+            <Link to="/">{tr(T.navHome)}</Link>
+            <Link to="/Features">{tr(T.navFeatures)}</Link>
+            <Link to="/dashboard">{tr(T.navDashboard)}</Link>
+            <Link to="/About">{tr(T.navAbout)}</Link>
+          </nav>
+          <div className="rs-lang" role="group" aria-label="Language">
             {LANGUAGES.map((l) => (
-              <button key={l.code} className={lang === l.code ? "on" : ""} onClick={() => setLang(l.code)} lang={l.code}>{l.label}</button>
+              <button key={l.code} className={lang === l.code ? "is-on" : ""} onClick={() => setLang(l.code)} lang={l.code}>{l.label}</button>
             ))}
           </div>
-          <Link to="/dashboard" className="btn btn-primary btn-sm hide-mobile">{tr(T.openDash)}</Link>
-          <button className="menu-btn" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">{menuOpen ? "✕" : "☰"}</button>
-        </div>
-      </header>
-
-      <main className="rs-main">
-        {/* HERO */}
-        <section className="rs-hero">
-          <p className="eyebrow">{tr(hero.eyebrow)}</p>
-          <h1>{tr(hero.a)} <span className="accent">{tr(hero.b)}</span></h1>
-          <p className="rs-sub">{tr(hero.sub)}</p>
-          <span className="rs-chip"><i />{tr(T.demoChip)}</span>
-        </section>
-
-        {/* the five Respond pages */}
-        <nav className="rs-tabs" aria-label={tr(T.tabsLabel)}>
-          {VIEWS.map((v) => (
-            <Link key={v.key} to={v.path} className={view === v.key ? "on" : ""} aria-current={view === v.key ? "page" : undefined}>{tr(v.label)}</Link>
-          ))}
-        </nav>
-
-        {/* EMERGENCY OVERVIEW */}
-        <section className="rs-kpis">
-          <div className="rs-kpi rs-kpi--warn"><b>{highCount}</b><small>/ {net.edges.length}</small><span>{tr(T.kHigh)}</span></div>
-          <div className="rs-kpi rs-kpi--red"><b>{closed.size}</b><span>{tr(T.kClosed)}</span></div>
-          <div className="rs-kpi"><b>{incidents.length}</b><span>{tr(T.kInc)}</span></div>
-          <div className="rs-kpi rs-kpi--ok"><b>{stats.reachable}</b><small>{tr(T.of)} {incidents.length}</small><span>{tr(T.kAmb)}</span></div>
-          <div className="rs-kpi rs-kpi--ok"><b>{stats.campsOk}</b><small>{tr(T.of)} {shelters.length}</small><span>{tr(T.kCamps)}</span></div>
-        </section>
-
-        {/* CONTROLS + MAP (on every page) */}
-        <section className="rs-grid" ref={gridRef}>
-          <aside className="rs-side">
-            <div className="rs-card">
-              <h3>{tr(T.rainTitle)}</h3>
-              <div className="rs-seg">
-                {[["live", T.live], ["replay", T.replayT], ["manual", T.manual]].map(([k, l]) => (
-                  <button key={k} className={source === k ? "on" : ""} onClick={() => { setSource(k); setPlaying(false); }}>{tr(l)}</button>
-                ))}
-              </div>
-              {source === "live" && (
-                <button className="rs-btn rs-btn--ghost" onClick={fetchLive}>↻ {tr(T.refresh)}</button>
-              )}
-              {source === "replay" && (
-                <div className="rs-replay">
-                  <button className="rs-play" onClick={() => { if (frame >= replay.length - 1) setFrame(0); setPlaying((p) => !p); }}>{playing ? "❚❚" : "▶"}</button>
-                  <input type="range" min="0" max={replay.length - 1} value={frame} onChange={(e) => { setPlaying(false); setFrame(+e.target.value); }} />
-                  <span>H{String(frame).padStart(2, "0")}</span>
-                </div>
-              )}
-              {source === "manual" && (
-                <>
-                  <div className="rs-presets">
-                    {Object.entries(PRESETS).map(([k, p]) => (
-                      <button key={k} className={manual.intensity === p.intensity && manual.rain24 === p.rain24 ? "on" : ""} onClick={() => setManual({ intensity: p.intensity, rain24: p.rain24 })}>{tr(T[k])}</button>
-                    ))}
-                  </div>
-                  <label className="rs-slider">
-                    <span>{tr(T.intensity)} <b>{manual.intensity} mm/h</b></span>
-                    <input type="range" min="0" max="60" value={manual.intensity} onChange={(e) => setManual((m) => ({ ...m, intensity: +e.target.value }))} />
-                  </label>
-                  <label className="rs-slider">
-                    <span>{tr(T.rain24)} <b>{manual.rain24} mm</b></span>
-                    <input type="range" min="0" max="250" value={manual.rain24} onChange={(e) => setManual((m) => ({ ...m, rain24: +e.target.value }))} />
-                  </label>
-                </>
-              )}
-              <p className="rs-note">
-                {intensity} mm/h · {rain24} mm · {(rainfallLoading(intensity, rain24) * 100).toFixed(0)}%
-                {sourceNote && <><br />{sourceNote}</>}
-              </p>
-            </div>
-
-            <div className="rs-card">
-              <h3>{tr(T.toolsTitle)}</h3>
-              <div className="rs-seg">
-                {[["incident", T.toolIncident], ["base", T.toolBase], ["off", T.toolOff]].map(([k, l]) => (
-                  <button key={k} className={tool === k ? "on" : ""} onClick={() => setTool(k)}>{tr(l)}</button>
-                ))}
-              </div>
-              <p className="rs-note">{tr(T.toolHint)}</p>
-              <div className="rs-row">
-                <button className="rs-btn rs-btn--ghost" onClick={() => { setClosed(new Set()); setSelectedRoad(null); }} disabled={!closed.size}>{tr(T.reopenAll)} ({closed.size})</button>
-                <button className="rs-btn rs-btn--ghost" onClick={resetPoints}>{tr(T.resetPoints)}</button>
-              </div>
-            </div>
-
-            {showContacts && (
-              <div className="rs-card">
-                <h3>{tr(T.contactsTitle)}</h3>
+          <div className="rs-sos-wrap">
+            <button className="rs-sos" onClick={() => setSosOpen((v) => !v)} aria-expanded={sosOpen}>📞 {tr(T.sosBtn)}</button>
+            {sosOpen && (
+              <div className="rs-sos-pop" role="dialog" aria-label={tr(T.contactsTitle)}>
                 <div className="rs-contacts">
                   {CONTACTS.map((c) => (
                     <a key={c.key} href={`tel:${c.number}`} className="rs-contact">
@@ -1150,96 +927,78 @@ export default function Respond({ view = "plan" }) {
                 <p className="rs-note">{tr(T.contactsNote)}</p>
               </div>
             )}
-          </aside>
+          </div>
+        </div>
+      </header>
 
-          <div className="rs-mapcol">
-            <div className="rs-mapwrap">
-              <div ref={mapEl} className="rs-map" />
-              <div className="rs-legend">
-                <div className="rs-legend-row">
-                  {[...CLASSES, NODATA].map((c) => <span key={c.key}><i style={{ background: c.color }} />{c.label}</span>)}
-                </div>
-                <div className="rs-legend-row">
-                  <span><i className="lg-amb" />{tr(T.mapLegendRoute)}</span>
-                  <span><i className="lg-sup" />{tr(T.mapLegendSupply)}</span>
-                  <span><i className="lg-closed" />{tr(T.closed)}</span>
-                  <span><b className="rs-key rs-key--h">H</b>Hospital</span>
-                  <span><b className="rs-key rs-key--s">S</b>Shelter</span>
-                  <span><b className="rs-key rs-key--b">B</b>Base</span>
-                </div>
-              </div>
-              <div className="rs-calc">{tr(T.recalc)} {calc.ms.toFixed(1)} ms</div>
+      {/* STEPPER */}
+      <section className="rs-head" ref={stepTop}>
+        <nav className="rs-steps" aria-label={tr(T.stepsLabel)}>
+          {STEPS.map((st) => (
+            <button
+              key={st.n}
+              className={`rs-stepbtn${step === st.n ? " is-on" : ""}${step > st.n ? " is-done" : ""}`}
+              onClick={() => goStep(st.n)}
+              aria-current={step === st.n ? "step" : undefined}
+            >
+              <span className="rs-stepnum">{step > st.n ? "✓" : st.n}</span>
+              <span className="rs-stepname">{tr(st.name)}</span>
+            </button>
+          ))}
+        </nav>
+        <div className="rs-head-row">
+          <div className="rs-head-text">
+            <p className="rs-eyebrow">{tr(T.stepWord)} {step} {tr(T.of)} 5</p>
+            <h1>{tr(cur.title)}</h1>
+            <p className="rs-sub">{tr(cur.sub)}</p>
+          </div>
+          <span className="rs-chip rs-chip--warn"><i />{tr(T.demoChip)}</span>
+        </div>
+      </section>
+
+      {/* STATUS: only the numbers that matter */}
+      <section className="rs-status">
+        <button className="rs-schip rs-schip--btn" onClick={() => goStep(1)}>
+          🌧 {intensity} mm/h · {rain24} mm <u>{tr(T.change)}</u>
+        </button>
+        <span className="rs-schip rs-schip--orange">⚠ <b>{highCount}</b><small>/ {net.edges.length}</small> {tr(T.kHigh)}</span>
+        <span className="rs-schip rs-schip--green">🚑 <b>{stats.reachable}</b><small>{tr(T.of)} {incidents.length}</small> {tr(T.kAmb)}</span>
+        <span className="rs-schip rs-schip--cyan">⛺ <b>{stats.campsOk}</b><small>{tr(T.of)} {shelters.length}</small> {tr(T.kCamps)}</span>
+      </section>
+
+      {/* MAP + ONE PANEL FOR THE CURRENT STEP */}
+      <main className="rs-grid" ref={gridRef}>
+        <section className="rs-mapwrap">
+          <div ref={mapEl} className="rs-map" />
+          <div className="rs-map-title"><span className="rs-dot" />RESPOND <em>{tr(cur.name)}</em></div>
+          <div className="rs-legend">
+            <div className="rs-legend-row">
+              {[...CLASSES, NODATA].map((c) => <span key={c.key}><i style={{ background: c.color }} />{c.label}</span>)}
             </div>
+            {legendExtra.length > 0 && <div className="rs-legend-row">{legendExtra}</div>}
           </div>
         </section>
 
-        {/* ---- page-specific sections ---- */}
-        {view === "plan" && (
-          <>
-            <section className="rs-two">
-              {pieCard(T.chRiskTitle, T.chRiskNote, riskSlices, T.uRoads, T.uRoad)}
-              {pieCard(T.chSupplyTitle, T.chSupplyNote, supplySlices, T.uUnits, T.uUnit)}
-            </section>
-            {incSection}
-            {campSection}
-            <section className="rs-two">{statsCard}{roadCard}</section>
-            <section className="rs-card rs-wide">
-              <h3>{tr(T.roadmapTitle)}</h3>
-              <p className="rs-note">{tr(T.roadmapNote)}</p>
-              <ul className="rs-roadmap">{ROADMAP.map((r) => <li key={r.en}>{tr(r)}</li>)}</ul>
-            </section>
-          </>
-        )}
-
-        {view === "closures" && (
-          <>
-            <section className="rs-two">
-              {closedCard}
-              {pieCard(T.chStatusTitle, T.chStatusNote, statusSlices, T.uRoads, T.uRoad)}
-            </section>
-            <section className="rs-two">
-              {pieCard(T.chRiskTitle, T.chRiskNote, riskSlices, T.uRoads, T.uRoad)}
-              {roadCard}
-            </section>
-          </>
-        )}
-
-        {view === "shelters" && (
-          <>
-            <section className="rs-two">
-              {pieCard(T.chCapTitle, T.chCapNote, capSlices, T.uPeople, T.uPerson)}
-              {hospCard}
-            </section>
-            {campCards}
-            <section className="rs-two">
-              {pieCard(T.chSupplyTitle, T.chSupplyNote, supplySlices, T.uUnits, T.uUnit)}
-              {pieCard(T.chHospTitle, T.chHospNote, hospSlices, T.uPoints, T.uPoint)}
-            </section>
-          </>
-        )}
-
-        {view === "ambulance" && (
-          <>
-            {incSection}
-            <section className="rs-two">
-              {pieCard(T.chHospTitle, T.chHospNote, hospSlices, T.uPoints, T.uPoint)}
-              {statsCard}
-            </section>
-          </>
-        )}
-
-        {view === "chokepoints" && (
-          <>
-            {chokeSection}
-            <section className="rs-two">
-              {pieCard(T.chChokeTitle, T.chChokeNote, chokeSlices, T.uRoads, T.uRoad)}
-              {roadCard}
-            </section>
-          </>
-        )}
-
-        <div className="rs-limits">{tr(T.limits)} {tr(T.limitsEngine)}</div>
+        <aside className="rs-panel" ref={panelRef}>
+          <div className="rs-panel-body" key={step}>
+            {step === 1 && rainCard}
+            {step === 2 && (<>{closeCard}{sel && roadCard}{pointsCard}</>)}
+            {step === 3 && (<>{ambCard}{ambStats}</>)}
+            {step === 4 && campCard}
+            {step === 5 && (<>{reviewCard}{exportCard}</>)}
+          </div>
+          <div className="rs-nav">
+            <button className="rs-btn rs-btn--ghost" disabled={step === 1} onClick={() => goStep(step - 1)}>← {tr(T.back)}</button>
+            {nextStep ? (
+              <button className="rs-btn rs-btn--next" onClick={() => goStep(step + 1)}>{tr(T.next)}: {tr(nextStep.name)} →</button>
+            ) : (
+              <button className="rs-btn rs-btn--next" onClick={() => goStep(1)}>↺ {tr(STEPS[0].name)}</button>
+            )}
+          </div>
+        </aside>
       </main>
+
+      <footer className="rs-limits">{tr(T.limits)} {tr(T.limitsEngine)}</footer>
     </div>
   );
 }
